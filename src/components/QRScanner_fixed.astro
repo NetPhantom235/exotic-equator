@@ -1,0 +1,506 @@
+---
+interface Props {
+  title?: string;
+  subtitle?: string;
+}
+
+const {
+  title = "Escanear Código QR",
+  subtitle = "Coloca el código QR frente a la cámara",
+} = Astro.props;
+
+interface QRDevice {
+  id: string;
+  name: string;
+  location: string;
+  status: string;
+}
+---
+
+<div class="scanner-container">
+  <div class="scanner-header">
+    <h3 class="scanner-title">{title}</h3>
+    <p class="scanner-info">{subtitle}</p>
+  </div>
+  <div class="scanner-wrapper">
+    <div class="scanner-viewport" id="scannerViewport">
+      <video id="qr-video"></video>
+      <div class="scanner-overlay">
+        <div class="scanner-target"></div>
+      </div>
+    </div>
+    <div id="scanner-error" class="scanner-error" style="display: none;"></div>
+    <div id="scanner-success" class="scanner-success" style="display: none;">
+    </div>
+  </div>
+  <div class="scanner-actions">
+    <button class="button button-secondary" id="toggleCamera">
+      <span class="icon icon-camera"></span>
+      <span id="cameraButtonText">Activar Cámara</span>
+    </button>
+    <button
+      class="button button-secondary"
+      id="switchCamera"
+      style="display: none;"
+    >
+      <span class="icon icon-switch"></span>
+      Cambiar Cámara
+    </button>
+  </div>
+</div>
+
+<style>
+  .scanner-container {
+    background: var(--background-secondary);
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    box-shadow: var(--shadow);
+    max-width: 600px;
+    margin: 0 auto;
+  }
+
+  .scanner-header {
+    margin-bottom: 1.5rem;
+    text-align: center;
+  }
+
+  .scanner-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 0.5rem 0;
+  }
+
+  .scanner-info {
+    font-size: 0.875rem;
+    color: #4a5568;
+    margin: 0.25rem 0;
+  }
+
+  .scanner-wrapper {
+    position: relative;
+    width: 100%;
+    max-width: 500px;
+    margin: 0 auto 1.5rem;
+    aspect-ratio: 4/3;
+  }
+
+  .scanner-viewport {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    background-color: #000;
+    border-radius: 0.375rem;
+    overflow: hidden;
+  }
+
+  #qr-video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .scanner-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.1);
+  }
+
+  .scanner-target {
+    width: 65%;
+    height: 65%;
+    border: 2px solid #fff;
+    border-radius: 1rem;
+    box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.3);
+    position: relative;
+  }
+
+  .scanner-target::before,
+  .scanner-target::after {
+    content: "";
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    border: 2px solid #2563eb;
+  }
+
+  .scanner-target::before {
+    top: -2px;
+    left: -2px;
+    border-right: none;
+    border-bottom: none;
+  }
+
+  .scanner-target::after {
+    bottom: -2px;
+    right: -2px;
+    border-left: none;
+    border-top: none;
+  }
+
+  .scanner-error {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(255, 255, 255, 0.95);
+    padding: 1rem;
+    border-radius: 0.5rem;
+    text-align: left;
+    font-size: 0.875rem;
+    color: #ef4444;
+    width: 90%;
+    max-width: 400px;
+    z-index: 10;
+  }
+
+  .scanner-error.scanner-success {
+    color: #047857;
+    background: rgba(209, 250, 229, 0.95);
+  }
+
+  .scanner-error ul {
+    margin: 0.5rem 0 0 1.5rem;
+    padding: 0;
+  }
+
+  .scanner-error li {
+    margin: 0.25rem 0;
+  }
+
+  .scanner-actions {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+  }
+
+  .button,
+  .button-secondary {
+    background: var(--background-tertiary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    padding: 0.5rem 1rem;
+  }
+
+  .button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .button-secondary:hover:not(:disabled),
+  .button:hover:not(:disabled) {
+    background: #232f3e;
+  }
+
+  .icon {
+    width: 1.25rem;
+    height: 1.25rem;
+    background-color: currentColor;
+    mask-size: contain;
+    mask-repeat: no-repeat;
+    mask-position: center;
+  }
+
+  .icon-camera {
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='currentColor'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z'/%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M15 13a3 3 0 11-6 0 3 3 0 016 0z'/%3E%3C/svg%3E");
+  }
+
+  .icon-switch {
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='currentColor'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4'/%3E%3C/svg%3E");
+  }
+</style>
+
+<script>
+  import QrScanner from "qr-scanner";
+
+  interface DeviceSearchResult {
+    success: boolean;
+    device?: QRDevice;
+    error?: string;
+  }
+
+  interface QRDevice {
+    id: string;
+    name: string;
+    status: string;
+    location: string;
+  }
+
+  class QRScannerManager {
+    private qrScanner: QrScanner | null = null;
+    private scanning = false;
+    private lastScan: string | null = null;
+    private lastScanTime = 0;
+    private defaultCamera = "environment";
+
+    constructor(
+      private video: HTMLVideoElement,
+      private errorDisplay: HTMLElement,
+      private successDisplay: HTMLElement,
+      private toggleButton: HTMLButtonElement,
+      private switchButton: HTMLButtonElement,
+      private buttonText: HTMLElement
+    ) {}
+
+    async init() {
+      try {
+        const hasCamera = await this.checkCameraPermission();
+        if (!hasCamera) {
+          throw new Error(
+            "No se encontró ninguna cámara o el permiso fue denegado"
+          );
+        }
+
+        const cameras = await QrScanner.listCameras(true);
+        this.setupCameraUI(cameras);
+        this.setupScanner();
+        this.addEventListeners();
+      } catch (error) {
+        console.error("Error al inicializar el escáner:", error);
+        this.showError(
+          "No se pudo inicializar el escáner. Verifica los permisos de la cámara."
+        );
+      }
+    }
+
+    private async checkCameraPermission(): Promise<boolean> {
+      try {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          throw new Error("Tu navegador no soporta el acceso a la cámara");
+        }
+
+        await navigator.mediaDevices.getUserMedia({ video: true });
+        return true;
+      } catch (error) {
+        if (error instanceof DOMException) {
+          if (error.name === "NotAllowedError") {
+            this.showError(
+              "El acceso a la cámara fue denegado. Por favor, otorga permiso para usar la cámara."
+            );
+          } else if (error.name === "NotFoundError") {
+            this.showError("No se encontró ninguna cámara en el dispositivo.");
+          }
+        }
+        return false;
+      }
+    }
+
+    private setupCameraUI(cameras: QrScanner.Camera[]) {
+      if (cameras.length > 1) {
+        this.switchButton.style.display = "block";
+        const hasBackCamera = cameras.some(
+          (camera) =>
+            camera.label.toLowerCase().includes("back") ||
+            camera.label.toLowerCase().includes("trasera")
+        );
+        if (hasBackCamera) {
+          this.defaultCamera = "environment";
+        }
+      }
+    }
+
+    private setupScanner() {
+      this.qrScanner = new QrScanner(
+        this.video,
+        (result) => this.handleScan(result.data),
+        {
+          returnDetailedScanResult: true,
+          highlightScanRegion: true,
+          highlightCodeOutline: true,
+          maxScansPerSecond: 5,
+          preferredCamera: this.defaultCamera,
+        }
+      );
+
+      this.qrScanner.setInversionMode("original");
+      this.qrScanner.setGrayscaleWeights(256, 256, 256);
+    }
+
+    private addEventListeners() {
+      this.toggleButton.addEventListener("click", () => this.toggleScanner());
+      this.switchButton.addEventListener("click", () => this.switchCamera());
+    }
+
+    private async handleScan(qrCode: string) {
+      const now = Date.now();
+      if (this.lastScan === qrCode && now - this.lastScanTime < 2000) {
+        return;
+      }
+
+      this.lastScan = qrCode;
+      this.lastScanTime = now;
+
+      try {
+        const result = await this.findDevice(qrCode);
+
+        if (!result.success) {
+          this.showError(result.error || "Error al procesar el código QR");
+          return;
+        }
+
+        if (result.device) {
+          if (result.device.status !== "available") {
+            this.showError(
+              `El dispositivo "${result.device.name}" no está disponible (${result.device.status})`
+            );
+            return;
+          }
+
+          await this.qrScanner?.stop();
+          this.dispatchDeviceEvent(result.device);
+          this.showSuccess(`Dispositivo encontrado: ${result.device.name}`);
+        }
+      } catch (error) {
+        console.error("Error al procesar el código QR:", error);
+        this.showError(
+          "Error al procesar el código QR. Por favor, intenta de nuevo."
+        );
+      }
+    }
+
+    private async findDevice(qrCode: string): Promise<DeviceSearchResult> {
+      try {
+        const response = await fetch(
+          `/api/devices/search?qr=${encodeURIComponent(qrCode)}`
+        );
+
+        if (!response.ok) {
+          if (response.status === 404) {
+            return {
+              success: false,
+              error: "Dispositivo no encontrado. Verifica el código QR.",
+            };
+          }
+          throw new Error(`Error ${response.status}: ${response.statusText}`);
+        }
+
+        const device = await response.json();
+        return {
+          success: true,
+          device,
+        };
+      } catch (error) {
+        console.error("Error buscando dispositivo:", error);
+        return {
+          success: false,
+          error: "Error al buscar el dispositivo. Por favor, intenta de nuevo.",
+        };
+      }
+    }
+
+    private async toggleScanner() {
+      try {
+        if (this.scanning) {
+          await this.qrScanner?.stop();
+          this.buttonText.textContent = "Activar Cámara";
+          this.scanning = false;
+        } else {
+          await this.qrScanner?.start();
+          this.buttonText.textContent = "Detener Cámara";
+          this.scanning = true;
+          this.hideMessages();
+        }
+      } catch (error) {
+        console.error("Error al toggle scanner:", error);
+        this.showError("Error al acceder a la cámara. Verifica los permisos.");
+      }
+    }
+
+    private async switchCamera() {
+      try {
+        this.defaultCamera =
+          this.defaultCamera === "environment" ? "user" : "environment";
+
+        if (this.scanning) {
+          await this.qrScanner?.stop();
+          this.setupScanner();
+          await this.qrScanner?.start();
+        }
+      } catch (error) {
+        console.error("Error al cambiar de cámara:", error);
+        this.showError(
+          "No se pudo cambiar la cámara. Por favor, intenta de nuevo."
+        );
+      }
+    }
+
+    private dispatchDeviceEvent(device: QRDevice) {
+      const event = new CustomEvent("deviceScanned", {
+        bubbles: true,
+        composed: true,
+        detail: { device },
+      });
+      document.dispatchEvent(event);
+    }
+
+    private showError(message: string) {
+      this.successDisplay.style.display = "none";
+      this.errorDisplay.textContent = message;
+      this.errorDisplay.style.display = "block";
+    }
+
+    private showSuccess(message: string) {
+      this.errorDisplay.style.display = "none";
+      this.successDisplay.textContent = message;
+      this.successDisplay.style.display = "block";
+      setTimeout(() => this.hideMessages(), 2000);
+    }
+
+    private hideMessages() {
+      this.errorDisplay.style.display = "none";
+      this.successDisplay.style.display = "none";
+    }
+  }
+
+  // Inicialización cuando el DOM esté listo
+  document.addEventListener("DOMContentLoaded", () => {
+    const video = document.getElementById("qr-video") as HTMLVideoElement;
+    const errorDisplay = document.getElementById(
+      "scanner-error"
+    ) as HTMLElement;
+    const successDisplay = document.getElementById(
+      "scanner-success"
+    ) as HTMLElement;
+    const toggleButton = document.getElementById(
+      "toggleCamera"
+    ) as HTMLButtonElement;
+    const switchButton = document.getElementById(
+      "switchCamera"
+    ) as HTMLButtonElement;
+    const buttonText = document.getElementById(
+      "cameraButtonText"
+    ) as HTMLElement;
+
+    if (
+      video &&
+      errorDisplay &&
+      successDisplay &&
+      toggleButton &&
+      switchButton &&
+      buttonText
+    ) {
+      const scanner = new QRScannerManager(
+        video,
+        errorDisplay,
+        successDisplay,
+        toggleButton,
+        switchButton,
+        buttonText
+      );
+      scanner.init();
+    } else {
+      console.error("No se pudieron encontrar todos los elementos necesarios");
+    }
+  });
+</script>

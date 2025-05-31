@@ -1,0 +1,235 @@
+---
+// Importaciones necesarias
+import { Image } from 'astro:assets';
+---
+
+<nav class="nav-container" aria-label="Navegación principal">
+  <div class="nav-content">
+    <!-- Logo -->
+    <div class="nav-logo">
+      <a href="/" aria-label="Ir a inicio">
+        <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+          <!-- Aquí puedes poner tu logo SVG -->
+          <rect width="40" height="40" rx="8" fill="var(--color-primary)"/>
+        </svg>
+      </a>
+    </div>
+
+    <!-- Menú principal -->
+    <div class="nav-links" role="navigation">
+      <a href="/productos" class="nav-link">Productos</a>
+      <a href="/servicios" class="nav-link">Servicios</a>
+      <a href="/nosotros" class="nav-link">Nosotros</a>
+      <a href="/contacto" class="nav-link">Contacto</a>
+    </div>
+
+    <!-- Controles secundarios -->
+    <div class="nav-controls">
+      <button class="search-button" aria-label="Buscar">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+          <path d="M9 17A8 8 0 1 0 9 1a8 8 0 0 0 0 16zM19 19l-4.35-4.35" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <button class="menu-button" aria-label="Menú" aria-expanded="false">
+        <span class="menu-icon"></span>
+      </button>
+    </div>
+  </div>
+</nav>
+
+<!-- Menú móvil -->
+<div class="mobile-menu" aria-hidden="true">
+  <div class="mobile-menu-content">
+    <a href="/productos" class="mobile-link">Productos</a>
+    <a href="/servicios" class="mobile-link">Servicios</a>
+    <a href="/nosotros" class="mobile-link">Nosotros</a>
+    <a href="/contacto" class="mobile-link">Contacto</a>
+  </div>
+</div>
+
+<style>
+  .nav-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: var(--z-index-dropdown);
+    background-color: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+
+  .nav-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 1rem var(--spacing-md);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .nav-logo {
+    flex-shrink: 0;
+  }
+
+  .nav-links {
+    display: flex;
+    gap: var(--spacing-lg);
+    margin: 0 var(--spacing-xl);
+  }
+
+  .nav-link {
+    color: var(--color-text-primary);
+    font-size: var(--font-size-sm);
+    text-decoration: none;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--border-radius-sm);
+    transition: all var(--transition-fast);
+  }
+
+  .nav-link:hover {
+    color: var(--color-primary);
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+
+  .nav-controls {
+    display: flex;
+    gap: var(--spacing-md);
+    align-items: center;
+  }
+
+  .search-button, .menu-button {
+    background: none;
+    border: none;
+    color: var(--color-text-primary);
+    padding: var(--spacing-xs);
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+  }
+
+  .search-button:hover, .menu-button:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+
+  .menu-icon {
+    display: none;
+    width: 24px;
+    height: 2px;
+    background-color: var(--color-text-primary);
+    position: relative;
+  }
+
+  .menu-icon::before,
+  .menu-icon::after {
+    content: '';
+    position: absolute;
+    width: 24px;
+    height: 2px;
+    background-color: var(--color-text-primary);
+    transition: all var(--transition-fast);
+  }
+
+  .menu-icon::before {
+    top: -6px;
+  }
+
+  .menu-icon::after {
+    bottom: -6px;
+  }
+
+  .mobile-menu {
+    display: none;
+    position: fixed;
+    top: 60px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--color-background);
+    z-index: var(--z-index-dropdown);
+    padding: var(--spacing-lg);
+    transform: translateY(-100%);
+    transition: transform var(--transition-normal);
+  }
+
+  .mobile-menu[aria-hidden="false"] {
+    transform: translateY(0);
+  }
+
+  .mobile-menu-content {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+  }
+
+  .mobile-link {
+    color: var(--color-text-primary);
+    font-size: var(--font-size-lg);
+    text-decoration: none;
+    padding: var(--spacing-sm);
+    border-radius: var(--border-radius-sm);
+    transition: all var(--transition-fast);
+  }
+
+  .mobile-link:hover {
+    color: var(--color-primary);
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+
+  @media (max-width: 768px) {
+    .nav-links {
+      display: none;
+    }
+
+    .menu-icon {
+      display: block;
+    }
+
+    .mobile-menu {
+      display: block;
+    }
+  }
+
+  /* Animaciones */
+  @media (prefers-reduced-motion: no-preference) {
+    .nav-link {
+      position: relative;
+    }
+
+    .nav-link::after {
+      content: '';
+      position: absolute;
+      bottom: -2px;
+      left: 50%;
+      width: 0;
+      height: 2px;
+      background-color: var(--color-primary);
+      transition: all var(--transition-fast);
+      transform: translateX(-50%);
+    }
+
+    .nav-link:hover::after {
+      width: 100%;
+    }
+  }
+</style>
+
+<script>
+  // Manejo del menú móvil
+  const menuButton = document.querySelector('.menu-button');
+  const mobileMenu = document.querySelector('.mobile-menu');
+
+  menuButton?.addEventListener('click', () => {
+    const isExpanded = menuButton.getAttribute('aria-expanded') === 'true';
+    menuButton.setAttribute('aria-expanded', (!isExpanded).toString());
+    mobileMenu?.setAttribute('aria-hidden', isExpanded.toString());
+  });
+
+  // Cerrar menú móvil al cambiar el tamaño de la ventana
+  window.addEventListener('resize', () => {
+    if (window.innerWidth > 768) {
+      menuButton?.setAttribute('aria-expanded', 'false');
+      mobileMenu?.setAttribute('aria-hidden', 'true');
+    }
+  });
+</script> 

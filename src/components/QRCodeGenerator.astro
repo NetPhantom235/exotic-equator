@@ -1,0 +1,187 @@
+---
+interface Props {
+  deviceId: string;
+  deviceName: string;
+}
+
+const { deviceId, deviceName } = Astro.props;
+---
+
+<div class="qr-container">
+  <div class="qr-header">
+    <h3 class="qr-title">Código QR del Dispositivo</h3>
+    <p class="qr-info">ID: {deviceId}</p>
+    <p class="qr-info">Nombre: {deviceName}</p>
+  </div>
+  <div class="qr-code" id="qrCode"></div>
+  <div class="qr-actions">
+    <button class="button button-primary" id="downloadQR">
+      <span class="icon icon-download"></span>
+      Descargar QR
+    </button>
+    <button class="button button-secondary" id="printQR">
+      <span class="icon icon-print"></span>
+      Imprimir QR
+    </button>
+  </div>
+</div>
+
+<style>
+  .qr-container {
+    background-color: white;
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+
+  .qr-header {
+    margin-bottom: 1.5rem;
+    text-align: center;
+  }
+
+  .qr-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #2d3748;
+    margin: 0 0 0.5rem 0;
+  }
+
+  .qr-info {
+    font-size: 0.875rem;
+    color: #4a5568;
+    margin: 0.25rem 0;
+  }
+
+  .qr-code {
+    display: flex;
+    justify-content: center;
+    margin: 1.5rem 0;
+    min-height: 200px;
+  }
+
+  .qr-actions {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+  }
+
+  .button {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s;
+  }
+
+  .button-primary {
+    background-color: #3182ce;
+    color: white;
+  }
+
+  .button-primary:hover {
+    background-color: #2c5282;
+  }
+
+  .button-secondary {
+    background-color: #edf2f7;
+    color: #4a5568;
+  }
+
+  .button-secondary:hover {
+    background-color: #e2e8f0;
+  }
+
+  .icon {
+    width: 1.25rem;
+    height: 1.25rem;
+    background-color: currentColor;
+    mask-size: contain;
+    mask-repeat: no-repeat;
+    mask-position: center;
+  }
+
+  .icon-download {
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='currentColor'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4'/%3E%3C/svg%3E");
+  }
+
+  .icon-print {
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='currentColor'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z'/%3E%3C/svg%3E");
+  }
+</style>
+
+<script>
+  import QRCode from "qrcode";
+
+  document.addEventListener("DOMContentLoaded", async () => {
+    const qrContainer = document.getElementById("qrCode");
+    const downloadButton = document.getElementById("downloadQR");
+    const printButton = document.getElementById("printQR");
+    const deviceId = qrContainer?.parentElement
+      ?.querySelector(".qr-info")
+      ?.textContent?.split(": ")[1];
+    let qrDataUrl: string | null = null;
+
+    if (qrContainer && deviceId) {
+      try {
+        qrDataUrl = await QRCode.toDataURL(deviceId, {
+          errorCorrectionLevel: "H",
+          margin: 1,
+          width: 300,
+        });
+        const qrImage = document.createElement("img");
+        qrImage.src = qrDataUrl;
+        qrImage.alt = "Código QR del dispositivo";
+        qrContainer.appendChild(qrImage);
+
+        // Configurar botón de descarga
+        if (downloadButton) {
+          downloadButton.addEventListener("click", () => {
+            if (qrDataUrl) {
+              const link = document.createElement("a");
+              link.download = `qr-${deviceId}.png`;
+              link.href = qrDataUrl;
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+            }
+          });
+        }
+
+        // Configurar botón de impresión
+        if (printButton) {
+          printButton.addEventListener("click", () => {
+            const printWindow = window.open("", "", "height=500,width=500");
+            if (printWindow && qrDataUrl) {
+              printWindow.document.write(
+                "<html><head><title>Imprimir Código QR</title></head><body>"
+              );
+              printWindow.document.write('<div style="text-align: center;">');
+              printWindow.document.write(`<h2>Código QR - ${deviceId}</h2>`);
+              printWindow.document.write(
+                `<img src="${qrDataUrl}" style="max-width: 100%; height: auto;" />`
+              );
+              printWindow.document.write("</div></body></html>");
+              printWindow.document.close();
+              printWindow.focus();
+              setTimeout(() => {
+                printWindow.print();
+                printWindow.close();
+              }, 250);
+            }
+          });
+        }
+      } catch (err) {
+        console.error("Error generando el código QR:", err);
+        if (qrContainer) {
+          qrContainer.innerHTML =
+            '<p style="color: #e53e3e;">Error al generar el código QR</p>';
+        }
+      }
+    }
+  });
+</script>

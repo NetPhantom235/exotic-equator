@@ -1,0 +1,254 @@
+---
+import DashboardHeader from '../../components/DashboardHeader.astro';
+import Sidebar from '../../components/Sidebar.astro';
+import { PrismaClient } from '../../lib/prisma-adapter.js';
+
+// Inicializar el cliente de prisma
+const prisma = new PrismaClient();
+
+// Verificar si el usuario está autenticado
+const user = Astro.locals.user;
+if (!user || user.role !== 'ADMIN') {
+  return Astro.redirect('/login?message=Acceso+restringido');
+}
+
+// Obtener parámetros de paginación y filtrado
+const { searchParams } = Astro.url;
+const page = parseInt(searchParams.get('page') || '1');
+const limit = 20;
+const skip = (page - 1) * limit;
+const type = searchParams.get('type') || 'all';
+
+// Construir filtros
+const filter = type !== 'all' ? { entityType: type } : {};
+
+// Obtener los registros de auditoría
+const auditLogs = await prisma.auditLog.findMany({
+  where: filter,
+  orderBy: {
+    createdAt: 'desc'
+  },
+  take: limit,
+  skip: skip
+});
+
+// Contar el total de registros para la paginación
+const totalLogs = await prisma.auditLog.count({
+  where: filter
+});
+
+const totalPages = Math.ceil(totalLogs / limit);
+
+// Obtener tipos de entidad únicos para el filtro
+const entityTypes = await prisma.auditLog.findMany({
+  select: {
+    entityType: true
+  },
+  distinct: ['entityType']
+});
+---
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logs del Sistema | ExoticEquator</title>
+    <link rel="stylesheet" href="/styles/main.css">
+</head>
+<body class="flex h-screen bg-gray-100 dark:bg-gray-900">
+    <Sidebar activePage="admin" />
+    
+    <div class="flex-1 flex flex-col overflow-hidden">
+        <DashboardHeader title="Logs del Sistema" user={user} />
+        
+        <main class="flex-1 overflow-y-auto p-4">
+            <div class="mb-6">
+                <h1 class="text-2xl font-bold text-gray-800 dark:text-white">Logs del Sistema</h1>
+                <p class="text-gray-600 dark:text-gray-300">Registros de actividad y eventos del sistema</p>
+            </div>
+            
+            <!-- Filtros -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4 mb-6">
+                <div class="flex flex-wrap items-center gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tipo de Entidad</label>
+                        <select id="entityTypeFilter" class="bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm w-full">
+                            <option value="all" selected={type === 'all'}>Todos</option>
+                            {entityTypes.map(item => (
+                                <option value={item.entityType} selected={type === item.entityType}>
+                                    {item.entityType}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Buscar</label>
+                        <input 
+                            type="text" 
+                            id="searchInput" 
+                            placeholder="ID, acción o detalles..." 
+                            class="bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm w-full"
+                        >
+                    </div>
+                    
+                    <div class="mt-6 md:mt-0">
+                        <button id="applyFilters" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm">
+                            Aplicar Filtros
+                        </button>
+                    </div>
+
+                    <div class="mt-6 md:mt-0 ml-auto">
+                        <button id="exportLogs" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m-12 6V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+                            </svg>
+                            Exportar Logs
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Tabla de logs -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden mb-6">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                        <thead class="bg-gray-50 dark:bg-gray-700">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">ID</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Fecha</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Acción</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Tipo de Entidad</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">ID de Entidad</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Usuario</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Detalles</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700">
+                            {auditLogs.map((log) => (
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap text-xs font-mono text-gray-600 dark:text-gray-400">{log.id}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
+                                        {new Date(log.createdAt).toLocaleString()}
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                            log.action.toLowerCase().includes('create') 
+                                                ? 'bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100'
+                                                : log.action.toLowerCase().includes('delete')
+                                                ? 'bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100'
+                                                : log.action.toLowerCase().includes('update')
+                                                ? 'bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100'
+                                                : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                                        }`}>
+                                            {log.action}
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">{log.entityType}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-xs font-mono text-gray-600 dark:text-gray-400">{log.entityId}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">{log.userId}</td>
+                                    <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
+                                        <div class="max-w-xs truncate" title={log.details || ""}>
+                                            {log.details || "-"}
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Paginación -->
+            {totalPages > 1 && (
+                <div class="flex justify-between items-center">
+                    <div class="text-sm text-gray-500 dark:text-gray-400">
+                        Mostrando {skip + 1}-{Math.min(skip + limit, totalLogs)} de {totalLogs} registros
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <button 
+                            disabled={page === 1}
+                            class={`px-3 py-1 rounded-md ${page === 1 ? 'bg-gray-100 dark:bg-gray-800 text-gray-400' : 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-800'}`}
+                            onclick={`navigateToPage(${page - 1})`}
+                        >
+                            Anterior
+                        </button>
+                        
+                        {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                            const pageNumber = i + 1;
+                            return (
+                                <button 
+                                    class={`px-3 py-1 rounded-md ${pageNumber === page ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'}`}
+                                    onclick={`navigateToPage(${pageNumber})`}
+                                >
+                                    {pageNumber}
+                                </button>
+                            );
+                        })}
+                        
+                        {totalPages > 5 && <span class="px-2 text-gray-500">...</span>}
+                        
+                        {totalPages > 5 && (
+                            <button 
+                                class={`px-3 py-1 rounded-md ${totalPages === page ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'}`}
+                                onclick={`navigateToPage(${totalPages})`}
+                            >
+                                {totalPages}
+                            </button>
+                        )}
+                        
+                        <button 
+                            disabled={page === totalPages}
+                            class={`px-3 py-1 rounded-md ${page === totalPages ? 'bg-gray-100 dark:bg-gray-800 text-gray-400' : 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-800'}`}
+                            onclick={`navigateToPage(${page + 1})`}
+                        >
+                            Siguiente
+                        </button>
+                    </div>
+                </div>
+            )}
+        </main>
+    </div>
+    
+    <script>
+    // Funciones para manejar la navegación y filtrado
+    function navigateToPage(page) {
+        const url = new URL(window.location.href);
+        url.searchParams.set('page', page);
+        window.location.href = url.toString();
+    }
+    
+    document.addEventListener('DOMContentLoaded', () => {
+        // Manejar filtrado
+        const applyFiltersButton = document.getElementById('applyFilters');
+        applyFiltersButton.addEventListener('click', () => {
+            const entityType = document.getElementById('entityTypeFilter').value;
+            const searchText = document.getElementById('searchInput').value;
+            
+            const url = new URL(window.location.href);
+            url.searchParams.set('page', '1');
+            
+            if (entityType && entityType !== 'all') {
+                url.searchParams.set('type', entityType);
+            } else {
+                url.searchParams.delete('type');
+            }
+            
+            if (searchText) {
+                url.searchParams.set('search', searchText);
+            } else {
+                url.searchParams.delete('search');
+            }
+            
+            window.location.href = url.toString();
+        });
+        
+        // Manejar exportación
+        document.getElementById('exportLogs').addEventListener('click', () => {
+            alert('Exportando logs... Esta función estará disponible en la versión beta.');
+        });
+    });
+    </script>
+</body>
+</html> 

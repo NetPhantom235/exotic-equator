@@ -1,0 +1,36 @@
+---
+import Layout from '../layouts/Layout.astro';
+import ErrorBoundary from '../components/ErrorBoundary.astro';
+
+const { message, status } = Astro.url.searchParams;
+const errorMessage = message || 'Ha ocurrido un error inesperado';
+const statusCode = status || '500';
+
+const errorTitles: Record<string, string> = {
+  '400': 'Solicitud incorrecta',
+  '401': 'No autorizado',
+  '403': 'Acceso denegado',
+  '404': 'Página no encontrada',
+  '500': 'Error del servidor',
+  '503': 'Servicio no disponible'
+};
+
+const errorTitle = errorTitles[statusCode] || 'Error';
+---
+
+<Layout title={`${statusCode} - ${errorTitle}`}>
+  <div class="min-h-[70vh] flex items-center justify-center px-4">
+    <div class="max-w-lg w-full">
+      <ErrorBoundary fallback={errorMessage} />
+      
+      <div class="mt-8 text-center">
+        <a 
+          href="/"
+          class="text-primary-600 dark:text-primary-400 hover:underline"
+        >
+          Volver al inicio
+        </a>
+      </div>
+    </div>
+  </div>
+</Layout> 

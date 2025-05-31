@@ -1,0 +1,644 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import DashboardHeader from "../../components/DashboardHeader.astro";
+import { PrismaClient } from "@prisma/client";
+
+// Inicializar Prisma
+const prisma = new PrismaClient();
+
+// Gestión de acciones CRUD
+let success = "";
+let error = "";
+
+if (Astro.request.method === "POST") {
+  try {
+    const formData = await Astro.request.formData();
+    const action = formData.get("action") as string;
+    
+    // Acción: Eliminar dispositivo
+    if (action === "delete") {
+      const deviceId = formData.get("deviceId") as string;
+      await prisma.device.delete({
+        where: { id: deviceId }
+      });
+      success = "Dispositivo eliminado correctamente";
+    }
+    
+    // Acción: Actualizar estado del dispositivo
+    if (action === "updateStatus") {
+      const deviceId = formData.get("deviceId") as string;
+      const newStatus = formData.get("status") as string;
+      
+      await prisma.device.update({
+        where: { id: deviceId },
+        data: { status: newStatus }
+      });
+      
+      success = `Estado del dispositivo actualizado a: ${newStatus}`;
+    }
+  } catch (e) {
+    console.error("Error en acción de dispositivo:", e);
+    error = "Ha ocurrido un error al procesar la solicitud";
+  }
+}
+
+// Obtener parámetros de filtro
+const searchQuery = Astro.url.searchParams.get("search") || "";
+const categoryFilter = Astro.url.searchParams.get("category") || "all";
+const statusFilter = Astro.url.searchParams.get("status") || "all";
+const sortBy = Astro.url.searchParams.get("sortBy") || "name";
+const sortDir = Astro.url.searchParams.get("sortDir") || "asc";
+
+// Generar filtros para la consulta
+const filters: any = {};
+
+if (searchQuery) {
+  filters.OR = [
+    { name: { contains: searchQuery, mode: 'insensitive' } },
+    { category: { contains: searchQuery, mode: 'insensitive' } },
+    { location: { contains: searchQuery, mode: 'insensitive' } }
+  ];
+}
+
+if (categoryFilter !== "all") {
+  filters.category = categoryFilter;
+}
+
+if (statusFilter !== "all") {
+  filters.status = statusFilter;
+}
+
+// Obtener todos los dispositivos con filtros
+const devices = await prisma.device.findMany({
+  where: filters,
+  orderBy: { [sortBy]: sortDir },
+  include: {
+    supervisor: true
+  }
+});
+
+// Obtener categorías únicas para el filtro
+const categories = [...new Set(devices.map(device => device.category))];
+
+// Cerrar la conexión de Prisma
+await prisma.$disconnect();
+---
+
+<Layout title="Gestión de Dispositivos | Sistema de Gestión de Inventario">
+  <DashboardHeader title="Gestión de Dispositivos" />
+  
+  <div class="devices-container">
+    <!-- Notificaciones de éxito/error -->
+    {success && <div class="success-message">{success}</div>}
+    {error && <div class="error-message">{error}</div>}
+    
+    <!-- Barra de acciones -->
+    <div class="action-bar">
+      <a href="/devices/new" class="btn btn-primary">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        Nuevo Dispositivo
+      </a>
+      
+      <a href="/devices/qr" class="btn btn-secondary">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+          <path d="M7 7h.01"></path>
+          <path d="M7 17h.01"></path>
+          <path d="M17 7h.01"></path>
+          <rect x="14" y="14" width="3" height="3"></rect>
+          <rect x="7" y="10" width="3" height="3"></rect>
+        </svg>
+        Códigos QR
+      </a>
+      
+      <a href="/devices/export" class="btn btn-secondary">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="7 10 12 15 17 10"></polyline>
+          <line x1="12" y1="15" x2="12" y2="3"></line>
+        </svg>
+        Exportar
+      </a>
+    </div>
+    
+    <!-- Filtros -->
+    <div class="filter-bar">
+      <form action="/devices" method="get" class="filter-form">
+        <div class="search-container">
+          <input 
+            type="text" 
+            name="search" 
+            placeholder="Buscar dispositivos..." 
+            value={searchQuery}
+            class="search-input"
+          />
+          <button type="submit" class="search-button">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+          </button>
+        </div>
+        
+        <div class="filter-controls">
+          <div class="filter-group">
+            <label for="category">Categoría</label>
+            <select name="category" id="category" class="filter-select">
+              <option value="all">Todas</option>
+              {categories.map(cat => (
+                <option value={cat} selected={categoryFilter === cat}>{cat}</option>
+              ))}
+            </select>
+          </div>
+          
+          <div class="filter-group">
+            <label for="status">Estado</label>
+            <select name="status" id="status" class="filter-select">
+              <option value="all">Todos</option>
+              <option value="available" selected={statusFilter === "available"}>Disponible</option>
+              <option value="in_use" selected={statusFilter === "in_use"}>En uso</option>
+              <option value="maintenance" selected={statusFilter === "maintenance"}>En mantenimiento</option>
+              <option value="retired" selected={statusFilter === "retired"}>Retirado</option>
+            </select>
+          </div>
+          
+          <div class="filter-group">
+            <label for="sortBy">Ordenar por</label>
+            <select name="sortBy" id="sortBy" class="filter-select">
+              <option value="name" selected={sortBy === "name"}>Nombre</option>
+              <option value="category" selected={sortBy === "category"}>Categoría</option>
+              <option value="status" selected={sortBy === "status"}>Estado</option>
+              <option value="location" selected={sortBy === "location"}>Ubicación</option>
+              <option value="createdAt" selected={sortBy === "createdAt"}>Fecha de creación</option>
+            </select>
+          </div>
+          
+          <div class="filter-group">
+            <label for="sortDir">Dirección</label>
+            <select name="sortDir" id="sortDir" class="filter-select">
+              <option value="asc" selected={sortDir === "asc"}>Ascendente</option>
+              <option value="desc" selected={sortDir === "desc"}>Descendente</option>
+            </select>
+          </div>
+        </div>
+      </form>
+      
+      <div class="filter-summary">
+        {devices.length} dispositivos encontrados
+      </div>
+    </div>
+    
+    <!-- Tabla de dispositivos -->
+    <div class="devices-table-container">
+      <table class="devices-table">
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Categoría</th>
+            <th>Estado</th>
+            <th>Ubicación</th>
+            <th>Supervisor</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {devices.length === 0 ? (
+            <tr>
+              <td colspan="6" class="empty-message">
+                No se encontraron dispositivos con los criterios seleccionados
+              </td>
+            </tr>
+          ) : (
+            devices.map((device) => (
+              <tr>
+                <td class="device-name">
+                  <a href={`/devices/${device.id}`}>{device.name}</a>
+                </td>
+                <td>{device.category}</td>
+                <td>
+                  <span class={`status-badge status-${device.status}`}>
+                    {device.status === 'available' ? 'Disponible' :
+                     device.status === 'in_use' ? 'En uso' :
+                     device.status === 'maintenance' ? 'Mantenimiento' :
+                     device.status === 'retired' ? 'Retirado' : device.status}
+                  </span>
+                </td>
+                <td>{device.location}</td>
+                <td>
+                  {device.supervisor ? (
+                    <a href={`/supervisors/${device.supervisor.id}`} class="supervisor-link">
+                      {device.supervisor.name}
+                    </a>
+                  ) : (
+                    <span class="no-supervisor">Sin asignar</span>
+                  )}
+                </td>
+                <td class="actions-cell">
+                  <div class="action-buttons">
+                    <a href={`/devices/${device.id}`} class="btn-action btn-view" title="Ver detalles">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                      </svg>
+                    </a>
+                    <a href={`/devices/${device.id}/edit`} class="btn-action btn-edit" title="Editar">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                      </svg>
+                    </a>
+                    
+                    <form method="post" class="inline-form" onsubmit="return confirm('¿Está seguro que desea eliminar este dispositivo? Esta acción no se puede deshacer.')">
+                      <input type="hidden" name="action" value="delete">
+                      <input type="hidden" name="deviceId" value={device.id}>
+                      <button type="submit" class="btn-action btn-delete" title="Eliminar">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <polyline points="3 6 5 6 21 6"></polyline>
+                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                          <line x1="10" y1="11" x2="10" y2="17"></line>
+                          <line x1="14" y1="11" x2="14" y2="17"></line>
+                        </svg>
+                      </button>
+                    </form>
+                    
+                    <form method="post" class="inline-form status-form">
+                      <input type="hidden" name="action" value="updateStatus">
+                      <input type="hidden" name="deviceId" value={device.id}>
+                      <select 
+                        name="status" 
+                        class="status-select" 
+                        onchange="this.form.submit()" 
+                        title="Cambiar estado"
+                      >
+                        <option value="available" selected={device.status === 'available'}>Disponible</option>
+                        <option value="in_use" selected={device.status === 'in_use'}>En uso</option>
+                        <option value="maintenance" selected={device.status === 'maintenance'}>Mantenimiento</option>
+                        <option value="retired" selected={device.status === 'retired'}>Retirado</option>
+                      </select>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+            ))
+          )}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</Layout>
+
+<style>
+  .devices-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 1rem;
+  }
+  
+  .success-message,
+  .error-message {
+    padding: 0.75rem 1rem;
+    border-radius: 0.375rem;
+    margin-bottom: 1.5rem;
+  }
+  
+  .success-message {
+    background-color: rgba(16, 185, 129, 0.1);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+    color: #10b981;
+  }
+  
+  .error-message {
+    background-color: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+  }
+  
+  .action-bar {
+    display: flex;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+  }
+  
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: none;
+  }
+  
+  .btn-primary {
+    background-color: var(--blue);
+    color: white;
+  }
+  
+  .btn-primary:hover {
+    background-color: #2563eb;
+  }
+  
+  .btn-secondary {
+    background-color: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+  }
+  
+  .btn-secondary:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+  }
+  
+  .filter-bar {
+    background: var(--background-secondary);
+    padding: 1.5rem;
+    border-radius: var(--card-radius);
+    box-shadow: var(--shadow);
+    margin-bottom: 1.5rem;
+  }
+  
+  .filter-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .search-container {
+    position: relative;
+    flex: 1;
+  }
+  
+  .search-input {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    padding-right: 2.5rem;
+    border-radius: 0.375rem;
+    border: 1px solid var(--border-color);
+    background: var(--background-tertiary);
+    color: var(--text-primary);
+    font-size: 1rem;
+  }
+  
+  .search-button {
+    position: absolute;
+    right: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 0;
+  }
+  
+  .filter-controls {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-top: 0.5rem;
+  }
+  
+  .filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .filter-group label {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+  }
+  
+  .filter-select {
+    padding: 0.5rem;
+    border-radius: 0.375rem;
+    border: 1px solid var(--border-color);
+    background: var(--background-tertiary);
+    color: var(--text-primary);
+  }
+  
+  .filter-summary {
+    margin-top: 1.5rem;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    text-align: right;
+  }
+  
+  .devices-table-container {
+    background: var(--background-secondary);
+    border-radius: var(--card-radius);
+    box-shadow: var(--shadow);
+    overflow-x: auto;
+  }
+  
+  .devices-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+  }
+  
+  .devices-table thead {
+    background: var(--background-tertiary);
+    border-bottom: 1px solid var(--border-color);
+  }
+  
+  .devices-table th {
+    text-align: left;
+    padding: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+  
+  .devices-table td {
+    padding: 1rem;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-primary);
+  }
+  
+  .devices-table tr:last-child td {
+    border-bottom: none;
+  }
+  
+  .device-name {
+    font-weight: 500;
+  }
+  
+  .device-name a {
+    color: var(--blue);
+    text-decoration: none;
+  }
+  
+  .device-name a:hover {
+    text-decoration: underline;
+  }
+  
+  .status-badge {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+  }
+  
+  .status-available {
+    background-color: rgba(16, 185, 129, 0.1);
+    color: #10b981;
+  }
+  
+  .status-in_use {
+    background-color: rgba(59, 130, 246, 0.1);
+    color: #3b82f6;
+  }
+  
+  .status-maintenance {
+    background-color: rgba(245, 158, 11, 0.1);
+    color: #f59e0b;
+  }
+  
+  .status-retired {
+    background-color: rgba(75, 85, 99, 0.1);
+    color: #6b7280;
+  }
+  
+  .supervisor-link {
+    color: var(--blue);
+    text-decoration: none;
+  }
+  
+  .supervisor-link:hover {
+    text-decoration: underline;
+  }
+  
+  .no-supervisor {
+    color: var(--text-secondary);
+    font-style: italic;
+  }
+  
+  .actions-cell {
+    white-space: nowrap;
+  }
+  
+  .action-buttons {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  
+  .inline-form {
+    display: inline;
+  }
+  
+  .btn-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 0.375rem;
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    padding: 0;
+  }
+  
+  .btn-view:hover {
+    background: rgba(59, 130, 246, 0.1);
+    color: #3b82f6;
+    border-color: #3b82f6;
+  }
+  
+  .btn-edit:hover {
+    background: rgba(16, 185, 129, 0.1);
+    color: #10b981;
+    border-color: #10b981;
+  }
+  
+  .btn-delete:hover {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+    border-color: #ef4444;
+  }
+  
+  .status-select {
+    font-size: 0.75rem;
+    padding: 0.3rem 0.5rem;
+    border-radius: 0.375rem;
+    border: 1px solid var(--border-color);
+    background: var(--background-tertiary);
+    color: var(--text-primary);
+  }
+  
+  .empty-message {
+    text-align: center;
+    padding: 2rem;
+    color: var(--text-secondary);
+    font-style: italic;
+  }
+  
+  @media (max-width: 768px) {
+    .filter-controls {
+      grid-template-columns: 1fr;
+    }
+    
+    .devices-table th:nth-child(4),
+    .devices-table td:nth-child(4),
+    .devices-table th:nth-child(5),
+    .devices-table td:nth-child(5) {
+      display: none;
+    }
+    
+    .action-bar {
+      flex-direction: column;
+    }
+  }
+</style>
+
+<script>
+  // Enviar el formulario cuando cambia cualquier filtro
+  document.addEventListener('DOMContentLoaded', () => {
+    const filterSelects = document.querySelectorAll('.filter-select');
+    
+    filterSelects.forEach(select => {
+      select.addEventListener('change', () => {
+        const form = select.closest('form');
+        if (form) form.submit();
+      });
+    });
+    
+    // Auto-ocultar mensajes de éxito/error después de 5 segundos
+    const successMessage = document.querySelector('.success-message');
+    const errorMessage = document.querySelector('.error-message');
+    
+    if (successMessage) {
+      setTimeout(() => {
+        successMessage.style.opacity = '0';
+        successMessage.style.transition = 'opacity 0.5s ease';
+        setTimeout(() => {
+          successMessage.style.display = 'none';
+        }, 500);
+      }, 5000);
+    }
+    
+    if (errorMessage) {
+      setTimeout(() => {
+        errorMessage.style.opacity = '0';
+        errorMessage.style.transition = 'opacity 0.5s ease';
+        setTimeout(() => {
+          errorMessage.style.display = 'none';
+        }, 500);
+      }, 5000);
+    }
+  });
+</script> 

@@ -1,0 +1,127 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/lib/prisma"
+}
+
+datasource db {
+  provider     = "sqlite"
+  url          = "file:./dev.db?connection_limit=5&pool_timeout=10&pragma=journal_mode(WAL)_foreign_keys(1)_busy_timeout(5000)"
+  relationMode = "prisma"
+}
+
+model Device {
+  id           String      @id @default(uuid())
+  name         String
+  category     String
+  status       String      @default("available")
+  location     String
+  notes        String?
+  qrCode       String?     @unique
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  supervisorId String?
+  supervisor   Supervisor? @relation(fields: [supervisorId], references: [id])
+  loans        Loan[]
+}
+
+model Supervisor {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  phone     String?
+  role      String   @default("USER")
+  status    String   @default("active")
+  password  String
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  devices   Device[]
+  loans     Loan[]
+}
+
+model Loan {
+  id           String     @id @default(uuid())
+  deviceId     String
+  supervisorId String
+  eventCode    String     @default("default-event")
+  newLocation  String     @default("default-location")
+  loanDate     DateTime   @default(now())
+  returnDate   DateTime?
+  status       String     @default("active")
+  notes        String?
+  condition    String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  device       Device     @relation(fields: [deviceId], references: [id])
+  supervisor   Supervisor @relation(fields: [supervisorId], references: [id])
+
+  @@unique([deviceId, loanDate])
+  @@index([eventCode])
+  @@index([newLocation])
+}
+
+model Alert {
+  id        String   @id @default(uuid())
+  type      String
+  message   String
+  status    String   @default("active")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  action     String
+  entityType String
+  entityId   String
+  userId     String
+  details    String?
+  createdAt  DateTime @default(now())
+}
+
+model QueryMetric {
+  id        String   @id @default(uuid())
+  queryTime Float
+  queryType String
+  timestamp DateTime @default(now())
+  success   Boolean  @default(true)
+  isSlow    Boolean  @default(false)
+  error     String?
+}
+
+model CacheMetric {
+  id        String   @id @default(uuid())
+  hitCount  Int      @default(0)
+  missCount Int      @default(0)
+  timestamp DateTime @default(now())
+}
+
+model SystemMetric {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
+model User {
+  id           String    @id @default(uuid())
+  email        String    @unique
+  passwordHash String    @map("password_hash")
+  role         String    @default("USER")
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  sessions     Session[]
+}
+
+model Session {
+  id          String   @id @default(uuid())
+  token       String   @unique
+  userId      String   @map("user_id")
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt   DateTime @map("expires_at")
+  invalidated Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@index([token])
+  @@index([userId])
+}

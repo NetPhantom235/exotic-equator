@@ -1,0 +1,219 @@
+---
+// Componente para mostrar y gestionar atajos de teclado
+---
+
+<div id="keyboardShortcutsOverlay" class="kbd-shortcuts-overlay">
+  <div class="kbd-shortcuts-panel">
+    <div class="kbd-shortcuts-header">
+      <h2 class="kbd-shortcuts-title">Atajos de Teclado</h2>
+      <button id="closeKeyboardShortcuts" class="kbd-close-btn">&times;</button>
+    </div>
+    
+    <div class="kbd-shortcuts-list">
+      <div class="kbd-shortcut-item">
+        <span class="kbd-shortcut-desc">Abrir menú de atajos</span>
+        <div class="kbd-shortcut-keys">
+          <span class="kbd-key">?</span>
+        </div>
+      </div>
+      
+      <div class="kbd-shortcut-item">
+        <span class="kbd-shortcut-desc">Buscar</span>
+        <div class="kbd-shortcut-keys">
+          <span class="kbd-key">Ctrl</span>
+          <span class="kbd-key">K</span>
+        </div>
+      </div>
+      
+      <div class="kbd-shortcut-item">
+        <span class="kbd-shortcut-desc">Nuevo dispositivo</span>
+        <div class="kbd-shortcut-keys">
+          <span class="kbd-key">Alt</span>
+          <span class="kbd-key">N</span>
+        </div>
+      </div>
+      
+      <div class="kbd-shortcut-item">
+        <span class="kbd-shortcut-desc">Nuevo préstamo</span>
+        <div class="kbd-shortcut-keys">
+          <span class="kbd-key">Alt</span>
+          <span class="kbd-key">P</span>
+        </div>
+      </div>
+      
+      <div class="kbd-shortcut-item">
+        <span class="kbd-shortcut-desc">Filtrar por estado</span>
+        <div class="kbd-shortcut-keys">
+          <span class="kbd-key">Alt</span>
+          <span class="kbd-key">F</span>
+        </div>
+      </div>
+      
+      <div class="kbd-shortcut-item">
+        <span class="kbd-shortcut-desc">Cerrar modales</span>
+        <div class="kbd-shortcut-keys">
+          <span class="kbd-key">Esc</span>
+        </div>
+      </div>
+      
+      <div class="kbd-shortcut-item">
+        <span class="kbd-shortcut-desc">Cambiar tema</span>
+        <div class="kbd-shortcut-keys">
+          <span class="kbd-key">Alt</span>
+          <span class="kbd-key">T</span>
+        </div>
+      </div>
+      
+      <div class="kbd-shortcut-item">
+        <span class="kbd-shortcut-desc">Ir a inicio</span>
+        <div class="kbd-shortcut-keys">
+          <span class="kbd-key">Alt</span>
+          <span class="kbd-key">H</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const shortcutsOverlay = document.getElementById('keyboardShortcutsOverlay');
+    const closeBtn = document.getElementById('closeKeyboardShortcuts');
+    
+    // Función para mostrar/ocultar la ayuda de atajos
+    function toggleShortcutsOverlay() {
+      if (!shortcutsOverlay) return;
+      
+      if (shortcutsOverlay.classList.contains('visible')) {
+        shortcutsOverlay.classList.remove('visible');
+      } else {
+        shortcutsOverlay.classList.add('visible');
+      }
+    }
+    
+    // Cerrar al hacer clic en el botón de cierre
+    if (closeBtn) {
+      closeBtn.addEventListener('click', toggleShortcutsOverlay);
+    }
+    
+    // Cerrar al hacer clic fuera del panel
+    if (shortcutsOverlay) {
+      shortcutsOverlay.addEventListener('click', function(e) {
+        if (e.target === shortcutsOverlay) {
+          toggleShortcutsOverlay();
+        }
+      });
+    }
+    
+    // Configurar atajos de teclado
+    document.addEventListener('keydown', function(e) {
+      const key = e.key.toLowerCase();
+      const altKey = e.altKey;
+      const ctrlKey = e.ctrlKey;
+      
+      // Mostrar ayuda de atajos (tecla ?)
+      if (key === '?' && !(e.target as HTMLElement)?.closest('input, textarea, select')) {
+        e.preventDefault();
+        toggleShortcutsOverlay();
+        return;
+      }
+      
+      // No procesar atajos si estamos en un campo de texto
+      if ((e.target as HTMLElement)?.closest('input, textarea, select')) return;
+      
+      // Mapeado de atajos
+      if (altKey) {
+        switch (key) {
+          case 'n': // Nuevo dispositivo
+            e.preventDefault();
+            const addDeviceBtn = document.getElementById('openAddDeviceModal');
+            if (addDeviceBtn instanceof HTMLElement) {
+              addDeviceBtn.click();
+            }
+            break;
+            
+          case 'p': // Nuevo préstamo
+            e.preventDefault();
+            const addLoanBtn = document.getElementById('openAddLoanModal');
+            if (addLoanBtn instanceof HTMLElement) {
+              addLoanBtn.click();
+            }
+            break;
+            
+          case 'f': // Enfoque en filtro
+            e.preventDefault();
+            const filterSelect = document.getElementById('statusFilter') || document.getElementById('statusLoanFilter');
+            if (filterSelect instanceof HTMLElement) {
+              filterSelect.focus();
+            }
+            break;
+            
+          case 't': // Cambiar tema
+            e.preventDefault();
+            const themeToggle = document.getElementById('themeToggle');
+            if (themeToggle instanceof HTMLElement) {
+              themeToggle.click();
+            }
+            break;
+            
+          case 'h': // Ir a inicio
+            e.preventDefault();
+            window.location.href = '/dashboard';
+            break;
+        }
+      }
+      
+      // Ctrl+K para buscar
+      if (ctrlKey && key === 'k') {
+        e.preventDefault();
+        const searchInput = document.getElementById('searchInput') || 
+                           document.getElementById('searchLoanInput') ||
+                           document.getElementById('globalSearchInput');
+        if (searchInput instanceof HTMLElement) {
+          searchInput.focus();
+        }
+      }
+      
+      // Esc para cerrar modales
+      if (key === 'escape') {
+        const visibleModal = document.querySelector('.modal[style*="display: block"]');
+        if (visibleModal) {
+          const closeBtn = visibleModal.querySelector('.close-modal');
+          if (closeBtn instanceof HTMLElement) {
+            closeBtn.click();
+          }
+        } else if (shortcutsOverlay?.classList.contains('visible')) {
+          toggleShortcutsOverlay();
+        }
+      }
+    });
+  });
+</script>
+
+<style>
+  .kbd-close-btn {
+    position: absolute;
+    top: var(--space-4);
+    right: var(--space-4);
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius-sm);
+    transition: all var(--transition-fast);
+  }
+  
+  .kbd-close-btn:hover {
+    color: var(--text-primary);
+    background: var(--background-tertiary);
+  }
+  
+  .kbd-shortcuts-header {
+    position: relative;
+    margin-bottom: var(--space-6);
+    padding-bottom: var(--space-4);
+    border-bottom: 1px solid var(--border-color);
+  }
+</style> 

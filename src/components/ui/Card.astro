@@ -1,0 +1,110 @@
+---
+interface Props {
+  class?: string;
+  variant?: 'default' | 'elevated';
+}
+
+const { 
+  class: className = '',
+  variant = 'default'
+} = Astro.props;
+
+const baseClasses = "bg-white rounded-lg overflow-hidden";
+const variantClasses = {
+  default: "border border-gray-200",
+  elevated: "shadow-lg"
+};
+---
+
+<div class:list={[baseClasses, variantClasses[variant], className]}>
+  <slot />
+</div>
+
+<style>
+  .card {
+    background: var(--background-elevated);
+    border-radius: var(--card-radius);
+    color: var(--text-primary);
+    transition: all var(--transition-normal);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .card-bordered {
+    border: var(--border-width-standard) solid var(--border-color);
+  }
+
+  .card-hover:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-md);
+  }
+
+  .card-clickable {
+    cursor: pointer;
+    text-decoration: none;
+    color: inherit;
+  }
+
+  .card-clickable:hover {
+    background: var(--background-secondary);
+  }
+
+  .card-elevated {
+    box-shadow: var(--shadow);
+  }
+
+  .card-flat {
+    background: var(--background-tertiary);
+  }
+
+  .card-interactive {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .card-interactive::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--accent);
+    opacity: 0;
+    transition: opacity var(--transition-normal);
+    pointer-events: none;
+  }
+
+  .card-interactive:hover::after {
+    opacity: 0.05;
+  }
+
+  .card-interactive:active::after {
+    opacity: 0.1;
+  }
+
+  .card-header {
+    margin-bottom: var(--space-4);
+  }
+
+  .card-title {
+    font-size: var(--text-lg);
+    font-weight: var(--font-weight-semibold);
+    margin: 0;
+    color: var(--text-primary);
+  }
+
+  .card-description {
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    margin: var(--space-1) 0 0;
+  }
+
+  .card-content {
+    flex: 1;
+  }
+
+  .card-footer {
+    margin-top: var(--space-4);
+    border-top: 1px solid var(--border-color);
+    padding-top: var(--space-4);
+  }
+</style> 

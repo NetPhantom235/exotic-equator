@@ -1,0 +1,533 @@
+---
+// Componente para documentar y estandarizar los estilos de la aplicación
+---
+
+<div class="design-system">
+  <section class="ds-section">
+    <h2 class="ds-title">Sistema de Diseño</h2>
+    <p class="ds-description">
+      Esta página documenta los componentes y estilos utilizados en la aplicación
+      para mantener la consistencia visual.
+    </p>
+  </section>
+
+  <section class="ds-section">
+    <h3 class="ds-subtitle">Colores</h3>
+    <div class="ds-colors">
+      <div class="ds-color-group">
+        <h4 class="ds-color-title">Fondos</h4>
+        <div class="ds-color-item">
+          <div class="ds-color-swatch" style="background: var(--background-primary)"></div>
+          <div class="ds-color-info">
+            <span class="ds-color-name">Background Primary</span>
+            <span class="ds-color-value">var(--background-primary)</span>
+          </div>
+        </div>
+        <div class="ds-color-item">
+          <div class="ds-color-swatch" style="background: var(--background-secondary)"></div>
+          <div class="ds-color-info">
+            <span class="ds-color-name">Background Secondary</span>
+            <span class="ds-color-value">var(--background-secondary)</span>
+          </div>
+        </div>
+        <div class="ds-color-item">
+          <div class="ds-color-swatch" style="background: var(--background-tertiary)"></div>
+          <div class="ds-color-info">
+            <span class="ds-color-name">Background Tertiary</span>
+            <span class="ds-color-value">var(--background-tertiary)</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="ds-color-group">
+        <h4 class="ds-color-title">Texto</h4>
+        <div class="ds-color-item">
+          <div class="ds-color-swatch" style="background: var(--text-primary)"></div>
+          <div class="ds-color-info">
+            <span class="ds-color-name">Text Primary</span>
+            <span class="ds-color-value">var(--text-primary)</span>
+          </div>
+        </div>
+        <div class="ds-color-item">
+          <div class="ds-color-swatch" style="background: var(--text-secondary)"></div>
+          <div class="ds-color-info">
+            <span class="ds-color-name">Text Secondary</span>
+            <span class="ds-color-value">var(--text-secondary)</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="ds-color-group">
+        <h4 class="ds-color-title">Acentos</h4>
+        <div class="ds-color-item">
+          <div class="ds-color-swatch" style="background: var(--accent)"></div>
+          <div class="ds-color-info">
+            <span class="ds-color-name">Accent</span>
+            <span class="ds-color-value">var(--accent)</span>
+          </div>
+        </div>
+        <div class="ds-color-item">
+          <div class="ds-color-swatch" style="background: var(--accent-hover)"></div>
+          <div class="ds-color-info">
+            <span class="ds-color-name">Accent Hover</span>
+            <span class="ds-color-value">var(--accent-hover)</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="ds-color-group">
+        <h4 class="ds-color-title">Estados</h4>
+        <div class="ds-color-item">
+          <div class="ds-color-swatch" style="background: var(--success)"></div>
+          <div class="ds-color-info">
+            <span class="ds-color-name">Success</span>
+            <span class="ds-color-value">var(--success)</span>
+          </div>
+        </div>
+        <div class="ds-color-item">
+          <div class="ds-color-swatch" style="background: var(--danger)"></div>
+          <div class="ds-color-info">
+            <span class="ds-color-name">Danger</span>
+            <span class="ds-color-value">var(--danger)</span>
+          </div>
+        </div>
+        <div class="ds-color-item">
+          <div class="ds-color-swatch" style="background: var(--warning)"></div>
+          <div class="ds-color-info">
+            <span class="ds-color-name">Warning</span>
+            <span class="ds-color-value">var(--warning)</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="ds-section">
+    <h3 class="ds-subtitle">Tipografía</h3>
+    <div class="ds-typography">
+      <div class="ds-type-item">
+        <h1 class="ds-type-example">Título Principal (H1)</h1>
+        <div class="ds-type-info">
+          <span class="ds-type-tag">h1</span>
+          <span class="ds-type-specs">Font-size: 2.1rem | Weight: 700 | Letter-spacing: -0.02em</span>
+        </div>
+      </div>
+      <div class="ds-type-item">
+        <h2 class="ds-type-example">Título Secundario (H2)</h2>
+        <div class="ds-type-info">
+          <span class="ds-type-tag">h2</span>
+          <span class="ds-type-specs">Font-size: 1.5rem | Weight: 700 | Letter-spacing: -0.01em</span>
+        </div>
+      </div>
+      <div class="ds-type-item">
+        <h3 class="ds-type-example">Título Terciario (H3)</h3>
+        <div class="ds-type-info">
+          <span class="ds-type-tag">h3</span>
+          <span class="ds-type-specs">Font-size: 1.25rem | Weight: 600</span>
+        </div>
+      </div>
+      <div class="ds-type-item">
+        <p class="ds-type-example">Texto de párrafo estándar con <a href="#">enlace</a> incluido.</p>
+        <div class="ds-type-info">
+          <span class="ds-type-tag">p</span>
+          <span class="ds-type-specs">Font-size: 1rem | Weight: 400 | Line-height: 1.5</span>
+        </div>
+      </div>
+      <div class="ds-type-item">
+        <p class="ds-type-example text-secondary">Texto secundario más pequeño</p>
+        <div class="ds-type-info">
+          <span class="ds-type-tag">.text-secondary</span>
+          <span class="ds-type-specs">Font-size: 0.9rem | Weight: 400 | Color: var(--text-secondary)</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="ds-section">
+    <h3 class="ds-subtitle">Espaciado</h3>
+    <div class="ds-spacing">
+      <div class="ds-spacing-item">
+        <div class="ds-spacing-box" style="padding: 0.5rem;"></div>
+        <span class="ds-spacing-info">0.5rem (8px)</span>
+      </div>
+      <div class="ds-spacing-item">
+        <div class="ds-spacing-box" style="padding: 1rem;"></div>
+        <span class="ds-spacing-info">1rem (16px)</span>
+      </div>
+      <div class="ds-spacing-item">
+        <div class="ds-spacing-box" style="padding: 1.5rem;"></div>
+        <span class="ds-spacing-info">1.5rem (24px)</span>
+      </div>
+      <div class="ds-spacing-item">
+        <div class="ds-spacing-box" style="padding: 2rem;"></div>
+        <span class="ds-spacing-info">2rem (32px)</span>
+      </div>
+      <div class="ds-spacing-item">
+        <div class="ds-spacing-box" style="padding: 2.5rem;"></div>
+        <span class="ds-spacing-info">2.5rem (40px)</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="ds-section">
+    <h3 class="ds-subtitle">Elementos de Interfaz</h3>
+    
+    <h4 class="ds-component-title">Botones</h4>
+    <div class="ds-buttons">
+      <div class="ds-button-group">
+        <button class="btn-primary">Botón Primario</button>
+        <div class="ds-component-info">
+          <code>.btn-primary</code>
+        </div>
+      </div>
+      <div class="ds-button-group">
+        <button class="btn-secondary">Botón Secundario</button>
+        <div class="ds-component-info">
+          <code>.btn-secondary</code>
+        </div>
+      </div>
+      <div class="ds-button-group">
+        <button class="btn-danger">Botón Peligro</button>
+        <div class="ds-component-info">
+          <code>.btn-danger</code>
+        </div>
+      </div>
+      <div class="ds-button-group">
+        <button class="btn-ghost">Botón Fantasma</button>
+        <div class="ds-component-info">
+          <code>.btn-ghost</code>
+        </div>
+      </div>
+    </div>
+    
+    <h4 class="ds-component-title">Campos de Formulario</h4>
+    <div class="ds-form-elements">
+      <div class="ds-form-group">
+        <label for="example-input">Campo de Texto</label>
+        <input type="text" id="example-input" placeholder="Escriba aquí...">
+        <div class="ds-component-info">
+          <code>input[type="text"]</code>
+        </div>
+      </div>
+      <div class="ds-form-group">
+        <label for="example-select">Selector</label>
+        <select id="example-select">
+          <option value="">Seleccione una opción</option>
+          <option value="1">Opción 1</option>
+          <option value="2">Opción 2</option>
+        </select>
+        <div class="ds-component-info">
+          <code>select</code>
+        </div>
+      </div>
+      <div class="ds-form-group">
+        <label for="example-textarea">Área de Texto</label>
+        <textarea id="example-textarea" placeholder="Escriba su mensaje aquí..."></textarea>
+        <div class="ds-component-info">
+          <code>textarea</code>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<style>
+  .design-system {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+    color: var(--text-primary);
+  }
+  
+  .ds-section {
+    margin-bottom: 3rem;
+    padding: 2rem;
+    background: var(--background-secondary);
+    border-radius: var(--card-radius);
+    box-shadow: var(--shadow);
+  }
+  
+  .ds-title {
+    font-size: 2.2rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    letter-spacing: -0.02em;
+  }
+  
+  .ds-subtitle {
+    font-size: 1.6rem;
+    font-weight: 700;
+    margin-bottom: 1.5rem;
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 0.5rem;
+  }
+  
+  .ds-description {
+    font-size: 1.1rem;
+    line-height: 1.6;
+    color: var(--text-secondary);
+    margin-bottom: 1rem;
+  }
+  
+  /* Colores */
+  .ds-colors {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 2rem;
+  }
+  
+  .ds-color-group {
+    margin-bottom: 1.5rem;
+  }
+  
+  .ds-color-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    color: var(--text-primary);
+  }
+  
+  .ds-color-item {
+    display: flex;
+    margin-bottom: 1rem;
+    align-items: center;
+  }
+  
+  .ds-color-swatch {
+    width: 3rem;
+    height: 3rem;
+    border-radius: 6px;
+    margin-right: 1rem;
+    border: 1px solid var(--border-color);
+  }
+  
+  .ds-color-info {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .ds-color-name {
+    font-weight: 500;
+    margin-bottom: 0.2rem;
+  }
+  
+  .ds-color-value {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    font-family: monospace;
+  }
+  
+  /* Tipografía */
+  .ds-typography {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+  }
+  
+  .ds-type-item {
+    display: flex;
+    flex-direction: column;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 1.5rem;
+  }
+  
+  .ds-type-example {
+    margin-bottom: 1rem;
+  }
+  
+  .ds-type-info {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    align-items: center;
+  }
+  
+  .ds-type-tag {
+    background-color: var(--background-tertiary);
+    padding: 0.3rem 0.6rem;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 0.85rem;
+  }
+  
+  .ds-type-specs {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+  }
+  
+  .text-secondary {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+  }
+  
+  /* Espaciado */
+  .ds-spacing {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2rem;
+  }
+  
+  .ds-spacing-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  
+  .ds-spacing-box {
+    background-color: var(--accent);
+    border-radius: 4px;
+    min-width: 1rem;
+    min-height: 1rem;
+  }
+  
+  .ds-spacing-info {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+  }
+  
+  /* Componentes */
+  .ds-component-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin: 2rem 0 1rem 0;
+  }
+  
+  .ds-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2rem;
+    margin-bottom: 2rem;
+  }
+  
+  .ds-button-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .ds-component-info {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+  }
+  
+  .ds-component-info code {
+    background: var(--background-tertiary);
+    padding: 0.2rem 0.4rem;
+    border-radius: 4px;
+    font-family: monospace;
+  }
+  
+  .ds-form-elements {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 2rem;
+    margin-bottom: 1rem;
+  }
+  
+  .ds-form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .ds-form-group label {
+    font-weight: 500;
+  }
+  
+  /* Botones para el sistema de diseño */
+  .btn-primary {
+    background: var(--accent);
+    color: white;
+    border: none;
+    padding: 0.7rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  
+  .btn-primary:hover {
+    background: var(--accent-hover);
+  }
+  
+  .btn-secondary {
+    background: var(--background-tertiary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    padding: 0.7rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  
+  .btn-secondary:hover {
+    background: var(--border-color);
+  }
+  
+  .btn-danger {
+    background: var(--danger);
+    color: white;
+    border: none;
+    padding: 0.7rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+  
+  .btn-danger:hover {
+    opacity: 0.9;
+  }
+  
+  .btn-ghost {
+    background: transparent;
+    color: var(--accent);
+    border: 1px solid transparent;
+    padding: 0.7rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  
+  .btn-ghost:hover {
+    background: rgba(37, 99, 235, 0.1);
+  }
+  
+  /* Estiliza los elementos de formulario */
+  input, select, textarea {
+    padding: 0.8rem 1rem;
+    background: var(--background-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 1rem;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  
+  input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+  }
+  
+  textarea {
+    min-height: 100px;
+    resize: vertical;
+  }
+  
+  @media (max-width: 768px) {
+    .ds-colors,
+    .ds-form-elements {
+      grid-template-columns: 1fr;
+    }
+    
+    .ds-buttons {
+      flex-direction: column;
+    }
+  }
+</style> 

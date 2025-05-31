@@ -1,0 +1,213 @@
+---
+interface Props {
+  alerts: Array<{
+    id: string;
+    type: string;
+    message: string;
+    status: string;
+    createdAt: Date;
+    updatedAt: Date;
+  }>;
+  limit?: number;
+  showActions?: boolean;
+  className?: string;
+}
+
+const { 
+  alerts, 
+  limit = 0, 
+  showActions = true, 
+  className = "" 
+} = Astro.props;
+
+// Limitar el número de alertas si es necesario
+const displayAlerts = limit > 0 ? alerts.slice(0, limit) : alerts;
+
+// Formatear la fecha relativa
+function getRelativeTime(date: Date): string {
+  const now = new Date();
+  const alertDate = new Date(date);
+  const diffInSeconds = Math.floor((now.getTime() - alertDate.getTime()) / 1000);
+  
+  if (diffInSeconds < 60) return "Hace unos segundos";
+  
+  const diffInMinutes = Math.floor(diffInSeconds / 60);
+  if (diffInMinutes < 60) return `Hace ${diffInMinutes} minuto${diffInMinutes > 1 ? 's' : ''}`;
+  
+  const diffInHours = Math.floor(diffInMinutes / 60);
+  if (diffInHours < 24) return `Hace ${diffInHours} hora${diffInHours > 1 ? 's' : ''}`;
+  
+  const diffInDays = Math.floor(diffInHours / 24);
+  if (diffInDays === 1) return "Ayer";
+  if (diffInDays < 7) return `Hace ${diffInDays} días`;
+  
+  const diffInWeeks = Math.floor(diffInDays / 7);
+  if (diffInWeeks === 1) return "Hace 1 semana";
+  if (diffInWeeks < 4) return `Hace ${diffInWeeks} semanas`;
+  
+  const diffInMonths = Math.floor(diffInDays / 30);
+  if (diffInMonths === 1) return "Hace 1 mes";
+  if (diffInMonths < 12) return `Hace ${diffInMonths} meses`;
+  
+  const diffInYears = Math.floor(diffInDays / 365);
+  return `Hace ${diffInYears} año${diffInYears > 1 ? 's' : ''}`;
+}
+---
+
+<div class={`alerts-list ${className}`}>
+  {displayAlerts.length > 0 ? (
+    displayAlerts.map((alert) => (
+      <div class={`alert-item alert-${alert.type.toLowerCase()}`} data-alert-id={alert.id}>
+        <div class="alert-content">
+          <span class="alert-type">{alert.type}</span>
+          <p class="alert-message">{alert.message}</p>
+          <span class="alert-date">{getRelativeTime(alert.createdAt)}</span>
+        </div>
+        
+        {showActions && alert.status === 'active' && (
+          <div class="alert-actions">
+            <form method="POST" action="/alerts">
+              <input type="hidden" name="action" value="resolve">
+              <input type="hidden" name="alertId" value={alert.id}>
+              <button type="submit" class="btn-action btn-resolve">
+                Resolver
+              </button>
+            </form>
+          </div>
+        )}
+      </div>
+    ))
+  ) : (
+    <div class="no-alerts">
+      No hay alertas disponibles
+    </div>
+  )}
+</div>
+
+<style>
+  .alerts-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .alert-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    border-left: 4px solid;
+    background: var(--background-tertiary);
+  }
+
+  .alert-danger {
+    border-left-color: var(--red);
+    background: rgba(239, 68, 68, 0.05);
+  }
+
+  .alert-warning {
+    border-left-color: var(--yellow);
+    background: rgba(245, 158, 11, 0.05);
+  }
+
+  .alert-info {
+    border-left-color: var(--blue);
+    background: rgba(59, 130, 246, 0.05);
+  }
+
+  .alert-success {
+    border-left-color: var(--green);
+    background: rgba(34, 197, 94, 0.05);
+  }
+
+  .alert-content {
+    flex: 1;
+  }
+
+  .alert-type {
+    display: inline-block;
+    padding: 0.2rem 0.5rem;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+  }
+
+  .alert-danger .alert-type {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--red);
+  }
+
+  .alert-warning .alert-type {
+    background: rgba(245, 158, 11, 0.1);
+    color: var(--yellow);
+  }
+
+  .alert-info .alert-type {
+    background: rgba(59, 130, 246, 0.1);
+    color: var(--blue);
+  }
+
+  .alert-success .alert-type {
+    background: rgba(34, 197, 94, 0.1);
+    color: var(--green);
+  }
+
+  .alert-message {
+    margin: 0 0 0.5rem;
+    font-size: 0.95rem;
+    color: var(--text-primary);
+  }
+
+  .alert-date {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+  }
+
+  .alert-actions {
+    margin-left: 1rem;
+    flex-shrink: 0;
+  }
+
+  .btn-action {
+    padding: 0.35rem 0.75rem;
+    font-size: 0.75rem;
+    border-radius: 0.25rem;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.2s;
+  }
+
+  .btn-resolve {
+    background-color: var(--blue);
+    color: white;
+  }
+
+  .btn-resolve:hover {
+    background-color: #2563eb;
+  }
+
+  .no-alerts {
+    padding: 1.5rem;
+    text-align: center;
+    color: var(--text-secondary);
+    font-style: italic;
+    background: var(--background-tertiary);
+    border-radius: 0.5rem;
+  }
+
+  @media (max-width: 768px) {
+    .alert-item {
+      flex-direction: column;
+    }
+
+    .alert-actions {
+      margin-left: 0;
+      margin-top: 0.75rem;
+      align-self: flex-end;
+    }
+  }
+</style> 

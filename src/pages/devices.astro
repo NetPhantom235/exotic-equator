@@ -1,0 +1,1127 @@
+---
+import Layout from "../layouts/Layout.astro";
+import DashboardHeader from "../components/DashboardHeader.astro";
+import Breadcrumbs from "../components/Breadcrumbs.astro";
+import Tooltip from "../components/Tooltip.astro";
+import Toast from "../components/Toast.astro";
+import ProgressIndicator from "../components/ProgressIndicator.astro";
+import { deviceService } from "../lib/deviceService";
+import type { DeviceWithRelations } from "../lib/deviceTypes";
+
+const { devices } = await deviceService.getAllDevices();
+const uniqueLocations = Array.from(
+  new Set(devices.map((d) => d.location).filter(Boolean))
+);
+const uniqueStatuses = [
+  { value: "", label: "Todos" },
+  { value: "available", label: "Disponible" },
+  { value: "on_loan", label: "En préstamo" },
+  { value: "maintenance", label: "Mantenimiento" },
+];
+
+// Definir breadcrumbs para esta página
+const breadcrumbItems = [
+  { label: "Gestión", href: "/dashboard" },
+  { label: "Dispositivos", href: "/devices" },
+];
+
+// Definir pasos para la creación de dispositivos
+const deviceCreationSteps = [
+  { id: "info", label: "Información Básica" },
+  { id: "specs", label: "Especificaciones" },
+  { id: "location", label: "Ubicación" },
+];
+---
+
+<Layout title="Dispositivos - Gestión Empresarial">
+  <DashboardHeader title="Dispositivos" />
+
+  <!-- Añadir breadcrumbs -->
+  <Breadcrumbs items={breadcrumbItems} />
+
+  <header class="main-header">
+    <h1 class="main-title">Dispositivos</h1>
+    <p class="main-subtitle">Gestión avanzada de tu inventario tecnológico</p>
+  </header>
+
+  <section class="actions-bar">
+    <Tooltip text="Añadir un nuevo dispositivo al inventario">
+      <button class="add-device-btn" id="openAddDeviceModal"
+        >+ Nuevo Dispositivo</button
+      >
+    </Tooltip>
+  </section>
+
+  <section class="filters-bar">
+    <input
+      id="searchInput"
+      class="search-input"
+      type="text"
+      placeholder="Buscar por nombre, categoría o ID..."
+    />
+    <Tooltip text="Filtrar por el estado actual del dispositivo">
+      <select id="statusFilter" class="filter-select">
+        {
+          uniqueStatuses.map((opt) => (
+            <option value={opt.value}>{opt.label}</option>
+          ))
+        }
+      </select>
+    </Tooltip>
+    <Tooltip text="Filtrar por la ubicación del dispositivo">
+      <select id="locationFilter" class="filter-select">
+        <option value="">Todas las ubicaciones</option>
+        {uniqueLocations.map((loc) => <option value={loc}>{loc}</option>)}
+      </select>
+    </Tooltip>
+  </section>
+
+  <section class="devices-grid" id="devicesGrid">
+    {
+      devices.map((device) => (
+        <article
+          class="device-card"
+          data-name={device.name}
+          data-category={device.category}
+          data-id={device.id}
+          data-status={device.status}
+          data-location={device.location}
+        >
+          <div class="device-panel">
+            <header class="device-header">
+              <h2 class="device-name">{device.name}</h2>
+              <span class="device-category">{device.category}</span>
+            </header>
+            <div class="device-info">
+              <div class="device-row">
+                <span class="device-label">Estado:</span>
+                <span
+                  class={`device-badge ${device.status === "available" ? "badge-available" : device.status === "maintenance" ? "badge-maintenance" : "badge-loan"}`}
+                >
+                  {device.status === "available"
+                    ? "Disponible"
+                    : device.status === "maintenance"
+                      ? "Mantenimiento"
+                      : "En préstamo"}
+                </span>
+              </div>
+              <div class="device-row">
+                <span class="device-label">Ubicación:</span>
+                <span class="device-location">{device.location}</span>
+              </div>
+            </div>
+            <div class="device-actions">
+              <Tooltip text="Ver detalles completos del dispositivo">
+                <a href={`/devices/${device.id}`} class="device-btn">
+                  Ver detalles
+                </a>
+              </Tooltip>
+              <Tooltip text="Eliminar este dispositivo">
+                <button
+                  class="device-btn delete-btn"
+                  data-device-id={device.id}
+                  data-device-name={device.name}
+                >
+                  Eliminar
+                </button>
+              </Tooltip>
+            </div>
+          </div>
+        </article>
+      ))
+    }
+  </section>
+
+  <!-- Agregar componente Toast para notificaciones -->
+  <Toast message="" />
+
+  <div
+    id="addDeviceModal"
+    class="modal"
+    style="display:none;opacity:0;transition:opacity 0.35s cubic-bezier(.4,0,.2,1);"
+  >
+    <div class="modal-content device-modal-content" tabindex="-1">
+      <div class="modal-header">
+        <h2>Agregar Dispositivo</h2>
+        <button class="close-modal" aria-label="Cerrar">&times;</button>
+      </div>
+
+      <!-- Añadir indicador de progreso para el proceso de creación -->
+      <div class="step-progress">
+        <ProgressIndicator steps={deviceCreationSteps} currentStep={0} />
+      </div>
+
+      <form id="addDeviceForm" autocomplete="off" novalidate>
+        <div class="form-step" id="step-info">
+          <div class="form-fields-grid">
+            <div class="form-group floating-label">
+              <input
+                type="text"
+                id="deviceName"
+                name="name"
+                required
+                placeholder=" "
+                autocomplete="off"
+                aria-required="true"
+                aria-describedby="nameFeedback"
+                autofocus
+              />
+              <label for="deviceName"
+                >Nombre <span class="required">*</span></label
+              >
+              <div class="form-error" id="nameFeedback" aria-live="polite">
+              </div>
+            </div>
+            <div class="form-group floating-label">
+              <select
+                id="deviceCategory"
+                name="category"
+                required
+                aria-required="true"
+                aria-describedby="categoryFeedback"
+              >
+                <option value="">Selecciona una categoría...</option>
+                <option value="Laptop">Laptop</option>
+                <option value="Proyector">Proyector</option>
+                <option value="Tablet">Tablet</option>
+                <option value="Monitor">Monitor</option>
+                <option value="Impresora">Impresora</option>
+                <option value="Zebra">Zebra</option>
+                <option value="Otro">Otra...</option>
+              </select>
+              <label for="deviceCategory"
+                >Categoría <span class="required">*</span></label
+              >
+              <input
+                type="text"
+                id="deviceCategoryOther"
+                name="categoryOther"
+                placeholder="Especificar otra categoría"
+                style="display:none;margin-top:0.5em;"
+                autocomplete="off"
+              />
+              <div class="form-error" id="categoryFeedback" aria-live="polite">
+              </div>
+            </div>
+            <div class="form-actions mt-2">
+              <button type="button" class="btn-primary" id="nextToSpecs"
+                >Siguiente</button
+              >
+            </div>
+          </div>
+        </div>
+
+        <div class="form-step" id="step-specs" style="display:none;">
+          <div class="form-fields-grid">
+            <div class="form-group floating-label">
+              <input
+                type="text"
+                id="deviceModel"
+                name="model"
+                placeholder=" "
+                autocomplete="off"
+              />
+              <label for="deviceModel">Modelo</label>
+            </div>
+            <div class="form-group floating-label">
+              <input
+                type="text"
+                id="deviceSerial"
+                name="serial"
+                placeholder=" "
+                autocomplete="off"
+              />
+              <label for="deviceSerial">Número de Serie</label>
+            </div>
+            <div class="form-actions mt-2">
+              <button type="button" class="btn-secondary" id="backToInfo"
+                >Anterior</button
+              >
+              <button type="button" class="btn-primary" id="nextToLocation"
+                >Siguiente</button
+              >
+            </div>
+          </div>
+        </div>
+
+        <div class="form-step" id="step-location" style="display:none;">
+          <div class="form-fields-grid">
+            <div class="form-group floating-label">
+              <input
+                type="text"
+                id="deviceLocation"
+                name="location"
+                required
+                placeholder=" "
+                autocomplete="off"
+              />
+              <label for="deviceLocation"
+                >Ubicación <span class="required">*</span></label
+              >
+              <div class="field-feedback" id="locationFeedback"></div>
+            </div>
+            <div class="form-group floating-label">
+              <select id="deviceStatus" name="status" required>
+                <option value="available">Disponible</option>
+                <option value="on_loan">En préstamo</option>
+                <option value="maintenance">Mantenimiento</option>
+              </select>
+              <label for="deviceStatus"
+                >Estado <span class="required">*</span></label
+              >
+            </div>
+            <div class="form-group floating-label full-width">
+              <textarea id="deviceNotes" name="notes" rows="3" placeholder=" "
+              ></textarea>
+              <label for="deviceNotes">Notas (opcional)</label>
+            </div>
+            <div class="form-actions mt-2">
+              <button type="button" class="btn-secondary" id="backToSpecs"
+                >Anterior</button
+              >
+              <button type="submit" class="btn-primary"
+                >Guardar Dispositivo</button
+              >
+            </div>
+          </div>
+        </div>
+
+        <div id="addDeviceFeedback" class="form-feedback" style="display:none;">
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="devices-table-container">
+    <table class="devices-table" id="devicesTable">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Nombre</th>
+          <th>Categoría</th>
+          <th>Estado</th>
+          <th>Ubicación</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {
+          devices.map((device) => (
+            <tr
+              data-name={device.name}
+              data-category={device.category}
+              data-id={device.id}
+              data-status={device.status}
+              data-location={device.location}
+            >
+              <td>{device.id.slice(0, 8)}</td>
+              <td>{device.name}</td>
+              <td>{device.category}</td>
+              <td>
+                <span
+                  class={`device-badge ${device.status === "available" ? "badge-available" : device.status === "maintenance" ? "badge-maintenance" : "badge-loan"}`}
+                >
+                  {device.status === "available"
+                    ? "Disponible"
+                    : device.status === "maintenance"
+                      ? "Mantenimiento"
+                      : "En préstamo"}
+                </span>
+              </td>
+              <td>{device.location}</td>
+              <td>
+                <a href={`/devices/${device.id}`} class="device-btn">
+                  Ver
+                </a>
+              </td>
+            </tr>
+          ))
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Agregar modal de confirmación -->
+  <div id="confirmDeleteModal" class="confirm-modal">
+    <div class="confirm-modal-content">
+      <h3>Confirmar eliminación</h3>
+      <p>
+        ¿Estás seguro que deseas eliminar el dispositivo <span
+          id="deviceToDelete"></span>?
+      </p>
+      <div class="confirm-modal-actions">
+        <button class="confirm-cancel" id="cancelDelete">Cancelar</button>
+        <button class="confirm-delete" id="confirmDelete">Eliminar</button>
+      </div>
+    </div>
+  </div>
+</Layout>
+
+<style>
+  :root {
+    /* Colores base */
+    --background-primary: #181a1b;
+    --background-secondary: #232526;
+    --background-tertiary: #23272e;
+    --text-primary: #f3f4f6;
+    --text-secondary: #b0b3b8;
+    --border-color: #2d2f31;
+
+    /* Estados */
+    --status-available-bg: #14532d;
+    --status-available-text: #22c55e;
+    --status-available-border: #22c55e;
+
+    --status-maintenance-bg: #78350f;
+    --status-maintenance-text: #fbbf24;
+    --status-maintenance-border: #fbbf24;
+
+    --status-loan-bg: #7f1d1d;
+    --status-loan-text: #ef4444;
+    --status-loan-border: #ef4444;
+
+    /* Variables estructurales */
+    --card-radius: 12px;
+    --shadow: 0 2px 16px 0 rgba(0, 0, 0, 0.25);
+    --font-main: "Inter", "SF Pro Display", "Segoe UI", Arial, sans-serif;
+  }
+
+  body,
+  html {
+    min-height: 100vh;
+    font-family: var(--font-main);
+    background: var(--background-primary);
+    color: var(--text-primary);
+    letter-spacing: 0.01em;
+  }
+
+  .main-header {
+    text-align: center;
+    margin-bottom: 2rem;
+  }
+
+  .main-title {
+    font-size: 2.2rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+  }
+
+  .main-subtitle {
+    font-size: 1.1rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+  }
+
+  .actions-bar {
+    display: flex;
+    justify-content: flex-end;
+    margin: 1.5rem 0 0.5rem 0;
+  }
+
+  .add-device-btn {
+    background: var(--accent);
+    color: #fff;
+    font-weight: 600;
+    font-size: 1rem;
+    border: none;
+    border-radius: 8px;
+    padding: 0.6rem 1.5rem;
+    cursor: pointer;
+    transition: background 0.2s;
+    box-shadow: 0 2px 8px 0 rgba(37, 99, 235, 0.08);
+  }
+
+  .add-device-btn:hover {
+    background: var(--accent-hover);
+  }
+
+  .filters-bar {
+    display: flex;
+    gap: 1.2rem;
+    margin: 1.5rem 0 0.5rem 0;
+    align-items: center;
+    justify-content: flex-end;
+  }
+
+  .search-input,
+  .filter-select {
+    background: var(--background-tertiary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 0.6rem 1.1rem;
+    font-size: 1rem;
+    font-family: inherit;
+    transition: border 0.2s;
+  }
+
+  .search-input:focus,
+  .filter-select:focus {
+    border-color: var(--accent);
+    outline: none;
+  }
+
+  .devices-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 2rem;
+    width: 100%;
+    max-width: 1400px;
+    margin: 2rem auto 0 auto;
+  }
+
+  .device-card {
+    background: none;
+    border-radius: var(--card-radius);
+    box-shadow: none;
+    position: relative;
+    overflow: visible;
+  }
+
+  .device-panel {
+    background: var(--background-secondary);
+    border-radius: var(--card-radius);
+    box-shadow: var(--shadow);
+    padding: 2rem 1.5rem 1.5rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .device-header {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+  }
+
+  .device-name {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 0.2rem;
+  }
+
+  .device-category {
+    font-size: 1rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+  }
+
+  .device-info {
+    margin-bottom: 1.2rem;
+  }
+
+  .device-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+  }
+
+  .device-label {
+    color: var(--text-secondary);
+    font-weight: 500;
+  }
+
+  .device-badge {
+    display: inline-block;
+    padding: 0.25rem 0.8rem;
+    border-radius: 9999px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    background: #232f3e;
+    color: #f3f4f6;
+    border: 1px solid #2d2f31;
+  }
+
+  .badge-available {
+    background: var(--status-available-bg);
+    color: var(--status-available-text);
+    border: 1px solid var(--status-available-border);
+  }
+
+  .badge-maintenance {
+    background: var(--status-maintenance-bg);
+    color: var(--status-maintenance-text);
+    border: 1px solid var(--status-maintenance-border);
+  }
+
+  .badge-loan {
+    background: var(--status-loan-bg);
+    color: var(--status-loan-text);
+    border: 1px solid var(--status-loan-border);
+  }
+
+  .device-actions {
+    margin-top: 1rem;
+  }
+
+  .device-btn {
+    background: var(--background-tertiary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 0.5rem 1.2rem;
+    font-weight: 500;
+    font-size: 1rem;
+    text-decoration: none;
+    transition: background 0.2s;
+    box-shadow: none;
+  }
+
+  .device-btn:hover {
+    background: #232f3e;
+  }
+
+  .devices-table-container {
+    margin-top: 2.5rem;
+    background: var(--background-secondary);
+    border-radius: var(--card-radius);
+    box-shadow: var(--shadow);
+    overflow-x: auto;
+    padding: 1.5rem 1rem;
+  }
+
+  .devices-table {
+    width: 100%;
+    border-collapse: collapse;
+    color: var(--text-primary);
+  }
+
+  .devices-table th,
+  .devices-table td {
+    padding: 0.75rem 1rem;
+    text-align: left;
+  }
+
+  .devices-table th {
+    background: var(--background-tertiary);
+    color: var(--text-primary);
+  }
+
+  .devices-table tbody tr {
+    border-top: 1px solid var(--border-color);
+    transition: background 0.2s;
+  }
+
+  .devices-table tbody tr:hover {
+    background: #232f3e;
+  }
+
+  .modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(24, 26, 27, 0.7);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: all;
+  }
+
+  .modal[style*="display: none"] {
+    pointer-events: none;
+  }
+  .modal[style*="display: none"],
+  .modal[style*="opacity:0"] {
+    opacity: 0;
+  }
+  .modal[style*="display: block"],
+  .modal[style*="opacity:1"] {
+    opacity: 1;
+  }
+
+  .modal-content {
+    background: var(--background-secondary);
+    border-radius: var(--card-radius);
+    box-shadow: var(--shadow);
+    padding: 2rem 1.5rem;
+    min-width: 340px;
+    max-width: 95vw;
+    position: relative;
+  }
+
+  .modal-content:focus {
+    outline: 2px solid var(--accent);
+  }
+
+  .device-modal-content {
+    border: 1.5px solid var(--accent);
+    box-shadow:
+      0 8px 40px 0 rgba(37, 99, 235, 0.13),
+      0 1.5px 0 0 var(--accent);
+    max-width: 540px;
+    width: 100%;
+    padding: 2.5rem 2rem 2rem 2rem;
+    background: var(--background-primary);
+    position: relative;
+    animation: modalPopIn 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  @keyframes modalPopIn {
+    0% {
+      transform: scale(0.97) translateY(40px);
+      opacity: 0;
+    }
+    100% {
+      transform: scale(1) translateY(0);
+      opacity: 1;
+    }
+  }
+
+  .form-fields-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.2rem 1.5rem;
+    margin-bottom: 1.2rem;
+  }
+
+  .form-group.full-width {
+    grid-column: 1 / -1;
+  }
+
+  .floating-label {
+    position: relative;
+  }
+
+  .floating-label input:not(:placeholder-shown),
+  .floating-label select:focus,
+  .floating-label input:focus {
+    border-color: var(--accent);
+  }
+
+  .floating-label label {
+    position: absolute;
+    left: 1.1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    background: var(--background-primary);
+    color: var(--text-secondary);
+    font-size: 1rem;
+    padding: 0 0.3em;
+    pointer-events: none;
+    transition: 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .floating-label input:focus + label,
+  .floating-label input:not(:placeholder-shown) + label,
+  .floating-label select:focus + label,
+  .floating-label select:not([value=""]) + label {
+    top: -0.7em;
+    left: 0.7rem;
+    font-size: 0.89em;
+    color: var(--accent);
+    background: var(--background-primary);
+    padding: 0 0.4em;
+    border-radius: 0.3em;
+  }
+
+  .form-group input,
+  .form-group select {
+    width: 100%;
+    padding: 1.1rem 1.1rem 0.6rem 1.1rem;
+    font-size: 1.08rem;
+    border-radius: 8px;
+    border: 1.5px solid var(--border-color);
+    background: var(--background-tertiary);
+    color: var(--text-primary);
+    font-family: inherit;
+    transition:
+      border 0.2s,
+      box-shadow 0.2s;
+    outline: none;
+    margin-bottom: 0.1em;
+  }
+
+  .form-group input:focus,
+  .form-group select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px #2563eb33;
+  }
+
+  .form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1.2rem;
+    margin-top: 1.5rem;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #fff;
+    font-weight: 600;
+    font-size: 1.08rem;
+    border: none;
+    border-radius: 8px;
+    padding: 0.7rem 2.1rem;
+    cursor: pointer;
+    transition: background 0.2s;
+    box-shadow: 0 2px 8px 0 rgba(37, 99, 235, 0.08);
+    position: relative;
+  }
+
+  .btn-primary:hover {
+    background: var(--accent-hover);
+  }
+
+  .btn-secondary {
+    background: var(--background-tertiary);
+    color: var(--text-primary);
+    border: 1.5px solid var(--border-color);
+    font-weight: 500;
+    font-size: 1.08rem;
+    border-radius: 8px;
+    padding: 0.7rem 1.7rem;
+    cursor: pointer;
+    transition:
+      background 0.2s,
+      border 0.2s;
+  }
+
+  .btn-secondary:hover {
+    background: #232f3e;
+    border-color: var(--accent);
+  }
+
+  .form-feedback {
+    margin-top: 1rem;
+    min-height: 1.5em;
+    font-size: 1rem;
+    font-weight: 500;
+    opacity: 0;
+    transition:
+      opacity 0.3s,
+      color 0.3s;
+    text-align: center;
+  }
+
+  .form-feedback.visible {
+    opacity: 1;
+  }
+
+  .required {
+    color: #ef4444;
+    font-size: 1.1em;
+    margin-left: 0.2em;
+  }
+
+  .field-feedback {
+    min-height: 1.1em;
+    font-size: 0.97em;
+    color: #ef4444;
+    margin-top: 0.1em;
+    transition: color 0.2s;
+  }
+
+  @media (max-width: 900px) {
+    .devices-grid {
+      grid-template-columns: 1fr;
+      gap: 1.2rem;
+    }
+    .devices-table-container {
+      margin-top: 1.2rem;
+    }
+  }
+
+  .delete-btn {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    cursor: pointer;
+    margin-left: 0.5rem;
+  }
+
+  .delete-btn:hover {
+    background-color: #c82333;
+  }
+
+  /* Modal de confirmación */
+  .confirm-modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+  }
+
+  .confirm-modal-content {
+    background-color: #fefefe;
+    margin: 15% auto;
+    padding: 20px;
+    border-radius: 8px;
+    width: 80%;
+    max-width: 500px;
+  }
+
+  .confirm-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    margin-top: 1rem;
+  }
+
+  .confirm-modal-actions button {
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+  }
+
+  .confirm-cancel {
+    background-color: #6c757d;
+    color: white;
+  }
+
+  .confirm-delete {
+    background-color: #dc3545;
+    color: white;
+  }
+
+  .form-error {
+    color: #ef4444;
+    font-size: 0.92rem;
+    margin-top: 0.2rem;
+    min-height: 1.2em;
+    transition: opacity 0.2s;
+    opacity: 0;
+    display: block;
+  }
+  .form-error.visible {
+    opacity: 1;
+    animation: shake 0.2s;
+  }
+  @keyframes shake {
+    0% {
+      transform: translateX(0);
+    }
+    25% {
+      transform: translateX(-4px);
+    }
+    50% {
+      transform: translateX(4px);
+    }
+    75% {
+      transform: translateX(-2px);
+    }
+    100% {
+      transform: translateX(0);
+    }
+  }
+</style>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    // Todo el código original del formulario y filtrado...
+
+    // Manejo de eliminación de dispositivos
+    let deviceToDeleteId: string | null = null;
+    const confirmModal = document.getElementById("confirmDeleteModal");
+    const deviceNameSpan = document.getElementById("deviceToDelete");
+    const cancelBtn = document.getElementById("cancelDelete");
+    const confirmBtn = document.getElementById("confirmDelete");
+    const devicesGrid = document.getElementById("devicesGrid");
+    const devicesTable = document.getElementById("devicesTable");
+
+    // Función para mostrar el modal de confirmación
+    function showConfirmModal(deviceId: string, deviceName: string): void {
+      deviceToDeleteId = deviceId;
+      if (deviceNameSpan) deviceNameSpan.textContent = deviceName;
+      if (confirmModal) {
+        confirmModal.style.display = "block";
+      }
+    }
+
+    // Función para ocultar el modal de confirmación
+    function hideConfirmModal(): void {
+      if (confirmModal) {
+        confirmModal.style.display = "none";
+      }
+      deviceToDeleteId = null;
+    }
+
+    // Función para eliminar el dispositivo de la UI
+    function removeDeviceFromUI(deviceId: string): void {
+      // Eliminar de la cuadrícula
+      if (devicesGrid) {
+        const deviceCard = devicesGrid.querySelector(`[data-id="${deviceId}"]`);
+        if (deviceCard) {
+          deviceCard.remove();
+        }
+      }
+
+      // Eliminar de la tabla
+      if (devicesTable) {
+        const deviceRow = devicesTable.querySelector(
+          `tbody tr[data-id="${deviceId}"]`
+        );
+        if (deviceRow) {
+          deviceRow.remove();
+        }
+      }
+    }
+
+    // Event listeners para los botones de eliminar
+    document.querySelectorAll(".delete-btn").forEach((btn: Element) => {
+      btn.addEventListener("click", function (this: HTMLButtonElement) {
+        const deviceId = this.dataset.deviceId;
+        const deviceName = this.dataset.deviceName;
+        if (deviceId && deviceName) {
+          showConfirmModal(deviceId, deviceName);
+        }
+      });
+    });
+
+    // Event listener para el botón de cancelar
+    if (cancelBtn) {
+      cancelBtn.addEventListener("click", hideConfirmModal);
+    }
+
+    // Event listener para el botón de confirmar eliminación
+    if (confirmBtn) {
+      confirmBtn.addEventListener("click", async function () {
+        if (!deviceToDeleteId) return;
+
+        if (
+          typeof window !== "undefined" &&
+          typeof window.showGlobalLoader === "function"
+        ) {
+          window.showGlobalLoader();
+        }
+
+        try {
+          const response = await fetch(`/api/devices/${deviceToDeleteId}`, {
+            method: "DELETE",
+          });
+
+          if (response.ok) {
+            // Eliminar el dispositivo de la UI inmediatamente
+            removeDeviceFromUI(deviceToDeleteId);
+
+            if (
+              typeof window !== "undefined" &&
+              window.toast &&
+              typeof window.toast.success === "function"
+            ) {
+              window.toast.success(
+                "Dispositivo eliminado correctamente",
+                "Éxito"
+              );
+            }
+          } else {
+            let errorMessage = "Error al eliminar el dispositivo";
+            try {
+              const errorData = await response.json();
+              errorMessage =
+                errorData.message || errorData.error || errorMessage;
+            } catch (e) {
+              console.error("Error parsing error response:", e);
+            }
+
+            if (
+              typeof window !== "undefined" &&
+              window.toast &&
+              typeof window.toast.error === "function"
+            ) {
+              window.toast.error(errorMessage, "Error");
+            }
+          }
+        } catch (error) {
+          console.error("Error deleting device:", error);
+          if (
+            typeof window !== "undefined" &&
+            window.toast &&
+            typeof window.toast.error === "function"
+          ) {
+            window.toast.error("Error de conexión", "Error");
+          }
+        } finally {
+          if (
+            typeof window !== "undefined" &&
+            typeof window.hideGlobalLoader === "function"
+          ) {
+            window.hideGlobalLoader();
+          }
+          hideConfirmModal();
+        }
+      });
+    }
+
+    // Cerrar el modal si se hace clic fuera de él
+    if (confirmModal) {
+      confirmModal.addEventListener("click", function (e) {
+        if (e.target === confirmModal) {
+          hideConfirmModal();
+        }
+      });
+    }
+  });
+</script>
+
+<script type="module">
+  import {
+    FormValidator,
+    ValidationRules,
+  } from "../components/FormValidator.js";
+  document.addEventListener("DOMContentLoaded", () => {
+    const form = document.getElementById("addDeviceForm");
+    const btn = form?.querySelector('button[type="submit"]');
+    if (!form || !btn) return;
+    let submitting = false;
+    const validator = new FormValidator(form, {
+      showOnBlur: true,
+      showOnChange: true,
+      realtimeValidation: true,
+    })
+      .addField(
+        "name",
+        [
+          ValidationRules.required("El nombre es obligatorio"),
+          ValidationRules.minLength(2, "Mínimo 2 caracteres"),
+        ],
+        document.getElementById("nameFeedback")
+      )
+      .addField(
+        "category",
+        [ValidationRules.required("La categoría es obligatoria")],
+        document.getElementById("categoryFeedback")
+      )
+      .onSubmit(function (e) {
+        if (submitting) {
+          e.preventDefault();
+          return;
+        }
+        if (!validator.validate()) {
+          e.preventDefault();
+          return;
+        }
+        submitting = true;
+        btn.disabled = true;
+        btn.setAttribute("aria-busy", "true");
+        btn.textContent = "Guardando...";
+      });
+    document.getElementById("deviceName")?.focus();
+  });
+</script>
+
+<!-- Solución de errores TS: declarar las propiedades globales en la ventana -->
+<!-- @ts-ignore -->
+<!-- eslint-disable-next-line -->
+<script>
+  declare global {
+    interface Window {
+      toast?: {
+        error?: (msg: string, title?: string) => void;
+        success?: (msg: string, title?: string) => void;
+      };
+      showGlobalLoader?: () => void;
+      hideGlobalLoader?: () => void;
+    }
+  }
+</script>

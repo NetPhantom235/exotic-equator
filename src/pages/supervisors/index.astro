@@ -1,0 +1,88 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Card from '../../components/ui/Card.astro';
+import Button from '../../components/ui/Button.astro';
+import Badge from '../../components/ui/Badge.astro';
+import { prisma } from '../../lib/prisma';
+
+const supervisors = await prisma.supervisor.findMany({
+  include: {
+    _count: {
+      select: { loans: true }
+    }
+  }
+});
+---
+
+<Layout title="Gestión de Supervisores">
+  <div class="container mx-auto px-4 py-8">
+    <div class="flex justify-between items-center mb-6">
+      <h1 class="text-2xl font-bold text-gray-800">Gestión de Supervisores</h1>
+      <a href="/supervisors/new" class="btn btn-primary">
+        Nuevo Supervisor
+      </a>
+    </div>
+
+    <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      {supervisors.map((supervisor) => (
+        <Card>
+          <div class="p-4">
+            <div class="flex justify-between items-start">
+              <h3 class="text-lg font-semibold">{supervisor.name}</h3>
+              <Badge 
+                text={supervisor.status} 
+                variant={supervisor.status === 'active' ? 'success' : 'warning'} 
+              />
+            </div>
+            <div class="mt-2 text-sm text-gray-600">
+              <p>Email: {supervisor.email}</p>
+              {supervisor.phone && <p>Teléfono: {supervisor.phone}</p>}
+              <p class="mt-2">
+                Préstamos activos: {supervisor._count.loans}
+              </p>
+            </div>
+            <div class="mt-4 flex gap-2">
+              <a href={`/supervisors/${supervisor.id}/edit`} class="btn btn-secondary btn-sm">
+                Editar
+              </a>
+              <button 
+                class="btn btn-danger btn-sm"
+                data-supervisor-id={supervisor.id}
+                data-action="delete"
+              >
+                Eliminar
+              </button>
+            </div>
+          </div>
+        </Card>
+      ))}
+    </div>
+  </div>
+</Layout>
+
+<script>
+  document.addEventListener('click', async (e) => {
+    const target = e.target as HTMLElement;
+    if (target.dataset.action === 'delete') {
+      const supervisorId = target.dataset.supervisorId;
+      if (!supervisorId) return;
+
+      if (confirm('¿Estás seguro de que deseas eliminar este supervisor?')) {
+        try {
+          const response = await fetch(`/api/supervisors/${supervisorId}`, {
+            method: 'DELETE',
+          });
+
+          if (response.ok) {
+            window.location.reload();
+          } else {
+            const data = await response.json();
+            alert(data.error || 'Error al eliminar el supervisor');
+          }
+        } catch (error) {
+          alert('Error al eliminar el supervisor');
+        }
+      }
+    }
+  });
+</script> 

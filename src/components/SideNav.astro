@@ -1,0 +1,172 @@
+---
+interface MenuItem {
+  label: string;
+  href: string;
+  icon: string;
+  badge?: {
+    text: string;
+    variant: 'primary' | 'success' | 'warning' | 'danger';
+  };
+}
+
+interface Props {
+  items: MenuItem[];
+  isCollapsed?: boolean;
+}
+
+const { items, isCollapsed = false } = Astro.props;
+
+// Mapeo de variantes de badges a clases
+const badgeVariants = {
+  primary: 'bg-primary-100 text-primary-800 dark:bg-primary-900 dark:text-primary-200',
+  success: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+  warning: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
+  danger: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+};
+---
+
+<aside
+  id="sideNav"
+  class:list={[
+    'fixed left-0 top-0 z-40 h-screen transition-transform bg-white border-r border-gray-200',
+    'dark:bg-dark-surface dark:border-dark-border pt-16',
+    { '-translate-x-full md:translate-x-0': !isCollapsed }
+  ]}
+  aria-label="Sidebar"
+>
+  <div class="h-full px-3 py-4 overflow-y-auto">
+    <button
+      id="collapseButton"
+      class="absolute right-0 top-20 bg-white dark:bg-dark-surface border border-gray-200 dark:border-dark-border rounded-r-lg p-1.5 hidden md:flex"
+      aria-label="Colapsar menú"
+    >
+      <svg
+        id="collapseIcon"
+        class="w-5 h-5 text-gray-500 dark:text-gray-400 transform transition-transform"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M11 19l-7-7 7-7m8 14l-7-7 7-7"
+        />
+      </svg>
+    </button>
+
+    <ul class="space-y-2">
+      {items.map(item => (
+        <li>
+          <a
+            href={item.href}
+            class:list={[
+              'flex items-center p-2 text-gray-900 rounded-lg dark:text-white',
+              'hover:bg-gray-100 dark:hover:bg-dark-primary group',
+              'transition-colors duration-200'
+            ]}
+          >
+            <span set:html={item.icon} class="w-5 h-5" />
+            <span class:list={[
+              'ml-3 whitespace-nowrap transition-opacity duration-200',
+              { 'opacity-0 md:group-hover:opacity-100': isCollapsed }
+            ]}>
+              {item.label}
+            </span>
+            {item.badge && (
+              <span class:list={[
+                'ml-3 text-xs font-medium px-2.5 py-0.5 rounded-full',
+                badgeVariants[item.badge.variant]
+              ]}>
+                {item.badge.text}
+              </span>
+            )}
+          </a>
+        </li>
+      ))}
+    </ul>
+  </div>
+</aside>
+
+<div
+  id="sideNavOverlay"
+  class="fixed inset-0 bg-gray-900 bg-opacity-50 z-30 hidden md:hidden"
+  aria-hidden="true"
+></div>
+
+<script>
+  const sideNav = document.getElementById('sideNav');
+  const collapseButton = document.getElementById('collapseButton');
+  const collapseIcon = document.getElementById('collapseIcon');
+  const overlay = document.getElementById('sideNavOverlay');
+  let isCollapsed = false;
+
+  // Toggle en móvil
+  function toggleMobileMenu() {
+    sideNav?.classList.toggle('-translate-x-full');
+    overlay?.classList.toggle('hidden');
+    document.body.classList.toggle('overflow-hidden');
+  }
+
+  // Toggle en desktop
+  function toggleDesktopMenu() {
+    isCollapsed = !isCollapsed;
+    sideNav?.classList.toggle('w-64');
+    sideNav?.classList.toggle('w-16');
+    collapseIcon?.classList.toggle('rotate-180');
+    
+    // Guardar preferencia
+    localStorage.setItem('sidenavCollapsed', String(isCollapsed));
+  }
+
+  // Restaurar estado
+  const savedState = localStorage.getItem('sidenavCollapsed');
+  if (savedState === 'true') {
+    toggleDesktopMenu();
+  }
+
+  // Event listeners
+  collapseButton?.addEventListener('click', toggleDesktopMenu);
+  overlay?.addEventListener('click', toggleMobileMenu);
+
+  // Cerrar en móvil al cambiar de ruta
+  document.addEventListener('astro:page-load', () => {
+    if (window.innerWidth < 768) {
+      sideNav?.classList.add('-translate-x-full');
+      overlay?.classList.add('hidden');
+      document.body.classList.remove('overflow-hidden');
+    }
+  });
+
+  // Responsive
+  window.addEventListener('resize', () => {
+    if (window.innerWidth >= 768) {
+      sideNav?.classList.remove('-translate-x-full');
+      overlay?.classList.add('hidden');
+      document.body.classList.remove('overflow-hidden');
+    } else {
+      sideNav?.classList.add('-translate-x-full');
+    }
+  });
+</script>
+
+<style>
+  aside {
+    width: theme('width.64');
+  }
+
+  @media (min-width: 768px) {
+    aside.w-16 {
+      width: theme('width.16');
+    }
+    
+    aside.w-16:hover {
+      width: theme('width.64');
+    }
+  }
+
+  .overflow-hidden {
+    overflow: hidden;
+  }
+</style> 

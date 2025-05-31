@@ -1,0 +1,277 @@
+---
+interface Props {
+  id: string;
+  title: string;
+  size?: 'sm' | 'md' | 'lg';
+  class?: string;
+}
+
+const {
+  id,
+  title,
+  size = 'md',
+  class: className = '',
+} = Astro.props;
+
+const sizes = {
+  sm: '400px',
+  md: '600px',
+  lg: '800px',
+};
+---
+
+<div
+  id={id}
+  class:list={['modal', className]}
+  role="dialog"
+  aria-labelledby={`${id}-title`}
+  aria-modal="true"
+  hidden
+>
+  <div class="modal-backdrop" data-close></div>
+  
+  <div 
+    class="modal-content"
+    style={`max-width: ${sizes[size]}`}
+  >
+    <header class="modal-header">
+      <h2 id={`${id}-title`} class="modal-title">
+        {title}
+      </h2>
+      <button 
+        type="button" 
+        class="modal-close" 
+        aria-label="Cerrar modal"
+        data-close
+      >
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+          <path d="M6 6l12 12m0-12L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </header>
+
+    <div class="modal-body">
+      <slot />
+    </div>
+
+    <footer class="modal-footer">
+      <slot name="footer" />
+    </footer>
+  </div>
+</div>
+
+<style>
+  .modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: var(--z-index-modal);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-md);
+  }
+
+  .modal[hidden] {
+    display: none;
+  }
+
+  .modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+  }
+
+  .modal-content {
+    position: relative;
+    width: 100%;
+    background-color: var(--color-surface);
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-lg);
+    animation: modalIn var(--transition-normal) forwards;
+  }
+
+  .modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--spacing-md);
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .modal-title {
+    font-size: var(--font-size-xl);
+    font-weight: 600;
+    color: var(--color-text-primary);
+    margin: 0;
+  }
+
+  .modal-close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    background: none;
+    border: none;
+    border-radius: 50%;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+  }
+
+  .modal-close:hover {
+    color: var(--color-text-primary);
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+
+  .modal-body {
+    padding: var(--spacing-md);
+    max-height: calc(100vh - 200px);
+    overflow-y: auto;
+  }
+
+  .modal-footer {
+    padding: var(--spacing-md);
+    border-top: 1px solid var(--color-border);
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--spacing-sm);
+  }
+
+  @keyframes modalIn {
+    from {
+      opacity: 0;
+      transform: scale(0.95) translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1) translateY(0);
+    }
+  }
+
+  @keyframes modalOut {
+    from {
+      opacity: 1;
+      transform: scale(1) translateY(0);
+    }
+    to {
+      opacity: 0;
+      transform: scale(0.95) translateY(10px);
+    }
+  }
+</style>
+
+<script>
+  class Modal {
+    modal: HTMLElement | null = null;
+    triggers: NodeListOf<HTMLElement> | null = null;
+    focusableElements: NodeListOf<HTMLElement> | null = null;
+    firstFocusable: HTMLElement | null = null;
+    lastFocusable: HTMLElement | null = null;
+    
+    constructor(modalId: string) {
+      const modal = document.getElementById(modalId);
+      if (!modal) return;
+      
+      this.modal = modal;
+      this.triggers = document.querySelectorAll(`[data-modal="${modalId}"]`);
+      this.setupEventListeners();
+    }
+
+    setupEventListeners() {
+      if (!this.modal || !this.triggers) return;
+
+      // Abrir modal
+      this.triggers.forEach(trigger => {
+        trigger.addEventListener('click', () => this.open());
+      });
+
+      // Cerrar modal
+      this.modal.querySelectorAll('[data-close]').forEach(closeButton => {
+        closeButton.addEventListener('click', () => this.close());
+      });
+
+      // Eventos de teclado
+      this.modal.addEventListener('keydown', this.handleKeyDown.bind(this));
+    }
+
+    open() {
+      if (!this.modal) return;
+      
+      this.modal.hidden = false;
+      document.body.style.overflow = 'hidden';
+      
+      // Capturar elementos focusables
+      this.focusableElements = this.modal.querySelectorAll(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      
+      if (this.focusableElements.length > 0) {
+        this.firstFocusable = this.focusableElements[0] as HTMLElement;
+        this.lastFocusable = this.focusableElements[this.focusableElements.length - 1] as HTMLElement;
+        this.firstFocusable?.focus();
+      }
+    }
+
+    close() {
+      if (!this.modal) return;
+      
+      const content = this.modal.querySelector('.modal-content') as HTMLElement;
+      if (!content) return;
+
+      content.style.animation = `modalOut var(--transition-normal) forwards`;
+      
+      setTimeout(() => {
+        if (this.modal) {
+          this.modal.hidden = true;
+          content.style.animation = '';
+          document.body.style.overflow = '';
+        }
+      }, 250);
+    }
+
+    handleKeyDown(event: KeyboardEvent) {
+      if (!this.modal || !this.focusableElements || !this.firstFocusable || !this.lastFocusable) return;
+
+      if (event.key === 'Escape') {
+        this.close();
+      }
+
+      if (event.key === 'Tab') {
+        // Si no hay elementos focusables, no hacer nada
+        if (this.focusableElements.length === 0) return;
+
+        // Shift + Tab
+        if (event.shiftKey) {
+          if (document.activeElement === this.firstFocusable) {
+            event.preventDefault();
+            this.lastFocusable.focus();
+          }
+        // Tab
+        } else {
+          if (document.activeElement === this.lastFocusable) {
+            event.preventDefault();
+            this.firstFocusable.focus();
+          }
+        }
+      }
+    }
+  }
+
+  // Inicializar todos los modales
+  document.addEventListener('DOMContentLoaded', () => {
+    const modals = document.querySelectorAll('.modal[id]');
+    modals.forEach(modal => {
+      new Modal(modal.id);
+    });
+  });
+</script> 

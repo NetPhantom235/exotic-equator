@@ -1,0 +1,215 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import { prisma } from "../../lib/prisma";
+import { showToast } from "../../stores/toastStore";
+
+// Procesar el formulario
+if (Astro.request.method === "POST") {
+  try {
+    const formData = await Astro.request.formData();
+    const name = formData.get("name") as string;
+    const email = formData.get("email") as string;
+    const phone = formData.get("phone") as string;
+
+    await prisma.supervisor.create({
+      data: { name, email, phone },
+    });
+
+    showToast({
+      type: "success",
+      message: "Supervisor creado exitosamente",
+    });
+
+    return Astro.redirect("/supervisors");
+  } catch (error) {
+    showToast({
+      type: "error",
+      message: "Error al crear el supervisor",
+    });
+  }
+}
+
+const breadcrumbs = [
+  {
+    label: "Supervisores",
+    href: "/supervisors",
+    icon: '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>',
+  },
+  {
+    label: "Nuevo Supervisor",
+    href: "/supervisors/new",
+  },
+];
+---
+
+<Layout title="Nuevo Supervisor" breadcrumbs={breadcrumbs}>
+  <div class="max-w-2xl mx-auto">
+    <form
+      method="POST"
+      class="bg-white dark:bg-dark-surface shadow-sm rounded-lg p-6"
+      id="newSupervisorForm"
+      novalidate
+      autocomplete="on"
+    >
+      <div class="space-y-6">
+        <div>
+          <label
+            for="name"
+            class="block text-sm font-medium text-gray-700 dark:text-gray-200"
+            >Nombre</label
+          >
+          <input
+            type="text"
+            name="name"
+            id="name"
+            required
+            aria-required="true"
+            aria-describedby="nameError"
+            autofocus
+            class="mt-1 block w-full rounded-md border-gray-300 dark:border-dark-border shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:bg-dark-primary sm:text-sm"
+          />
+          <div class="form-error" id="nameError" aria-live="polite"></div>
+        </div>
+        <div>
+          <label
+            for="email"
+            class="block text-sm font-medium text-gray-700 dark:text-gray-200"
+            >Email</label
+          >
+          <input
+            type="email"
+            name="email"
+            id="email"
+            required
+            aria-required="true"
+            aria-describedby="emailError"
+            class="mt-1 block w-full rounded-md border-gray-300 dark:border-dark-border shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:bg-dark-primary sm:text-sm"
+          />
+          <div class="form-error" id="emailError" aria-live="polite"></div>
+        </div>
+        <div>
+          <label
+            for="phone"
+            class="block text-sm font-medium text-gray-700 dark:text-gray-200"
+            >Teléfono</label
+          >
+          <input
+            type="tel"
+            name="phone"
+            id="phone"
+            required
+            aria-required="true"
+            aria-describedby="phoneError"
+            class="mt-1 block w-full rounded-md border-gray-300 dark:border-dark-border shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:bg-dark-primary sm:text-sm"
+          />
+          <div class="form-error" id="phoneError" aria-live="polite"></div>
+        </div>
+        <div class="flex justify-end space-x-3">
+          <a
+            href="/supervisors"
+            class="inline-flex justify-center rounded-md border border-gray-300 dark:border-dark-border px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 shadow-sm hover:bg-gray-50 dark:hover:bg-dark-primary focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
+            >Cancelar</a
+          >
+          <button
+            type="submit"
+            class="inline-flex justify-center rounded-md border border-transparent bg-primary-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
+            id="supervisorBtn"
+            aria-busy="false">Guardar</button
+          >
+        </div>
+      </div>
+    </form>
+  </div>
+</Layout>
+
+<script type="module">
+  import {
+    FormValidator,
+    ValidationRules,
+  } from "../../components/FormValidator.js";
+  document.addEventListener("DOMContentLoaded", () => {
+    const form = document.getElementById("newSupervisorForm");
+    const btn = document.getElementById("supervisorBtn");
+    if (!form || !btn) return;
+    let submitting = false;
+    const validator = new FormValidator(form, {
+      showOnBlur: true,
+      showOnChange: true,
+      realtimeValidation: true,
+    })
+      .addField(
+        "name",
+        [
+          ValidationRules.required("El nombre es obligatorio"),
+          ValidationRules.minLength(2, "Mínimo 2 caracteres"),
+        ],
+        document.getElementById("nameError")
+      )
+      .addField(
+        "email",
+        [
+          ValidationRules.required("El email es obligatorio"),
+          ValidationRules.email("Introduce un email válido"),
+        ],
+        document.getElementById("emailError")
+      )
+      .addField(
+        "phone",
+        [
+          ValidationRules.required("El teléfono es obligatorio"),
+          ValidationRules.pattern(
+            /^\d{7,15}$/,
+            "Introduce un teléfono válido (solo números, 7-15 dígitos)"
+          ),
+        ],
+        document.getElementById("phoneError")
+      )
+      .onSubmit(function (e) {
+        if (submitting) {
+          e.preventDefault();
+          return;
+        }
+        if (!validator.validate()) {
+          e.preventDefault();
+          return;
+        }
+        submitting = true;
+        btn.disabled = true;
+        btn.setAttribute("aria-busy", "true");
+        btn.textContent = "Guardando...";
+      });
+    document.getElementById("name")?.focus();
+  });
+</script>
+<style>
+  .form-error {
+    color: #ef4444;
+    font-size: 0.92rem;
+    margin-top: 0.2rem;
+    min-height: 1.2em;
+    transition: opacity 0.2s;
+    opacity: 0;
+    display: block;
+  }
+  .form-error.visible {
+    opacity: 1;
+    animation: shake 0.2s;
+  }
+  @keyframes shake {
+    0% {
+      transform: translateX(0);
+    }
+    25% {
+      transform: translateX(-4px);
+    }
+    50% {
+      transform: translateX(4px);
+    }
+    75% {
+      transform: translateX(-2px);
+    }
+    100% {
+      transform: translateX(0);
+    }
+  }
+</style>

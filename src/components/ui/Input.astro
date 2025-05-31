@@ -1,0 +1,256 @@
+---
+interface Props {
+  type?: 'text' | 'password' | 'email' | 'number' | 'tel' | 'url' | 'search' | 'date' | 'time' | 'datetime-local';
+  id: string;
+  name: string;
+  label?: string;
+  placeholder?: string;
+  value?: string | number;
+  required?: boolean;
+  disabled?: boolean;
+  readonly?: boolean;
+  error?: string;
+  helperText?: string;
+  size?: 'sm' | 'md' | 'lg';
+  fullWidth?: boolean;
+  icon?: boolean;
+  min?: number | string;
+  max?: number | string;
+  step?: number | string;
+  pattern?: string;
+  class?: string;
+  autocomplete?: string;
+  autofocus?: boolean;
+}
+
+const {
+  type = 'text',
+  id,
+  name,
+  label,
+  placeholder,
+  value,
+  required = false,
+  disabled = false,
+  readonly = false,
+  error,
+  helperText,
+  size = 'md',
+  fullWidth = false,
+  icon = false,
+  min,
+  max,
+  step,
+  pattern,
+  class: className = '',
+  autocomplete,
+  autofocus = false,
+} = Astro.props;
+
+// Clases para diferentes tamaños
+const sizeClasses = {
+  sm: 'input-sm',
+  md: 'input-md',
+  lg: 'input-lg',
+};
+
+// Construir clases del input
+const inputClasses = [
+  'input-field',
+  sizeClasses[size],
+  icon ? 'has-icon' : '',
+  error ? 'input-error' : '',
+  fullWidth ? 'input-full' : '',
+  className
+].filter(Boolean).join(' ');
+
+// ID único para mensajes de error e instrucciones
+const errorId = `${id}-error`;
+const helperId = `${id}-helper`;
+
+// Accesibilidad: determinar aria attributes
+const ariaAttributes = {
+  'aria-invalid': error ? 'true' : undefined,
+  'aria-describedby': [
+    helperText ? helperId : null,
+    error ? errorId : null
+  ].filter(Boolean).join(' ') || undefined
+};
+---
+
+<div class={`input-container ${fullWidth ? 'w-full' : ''}`}>
+  {label && (
+    <label for={id} class="input-label">
+      {label} {required && <span class="required-indicator">*</span>}
+    </label>
+  )}
+  
+  <div class="input-wrapper">
+    {icon && <div class="input-icon"><slot name="icon" /></div>}
+    
+    <input
+      type={type}
+      id={id}
+      name={name}
+      class={inputClasses}
+      placeholder={placeholder}
+      value={value}
+      required={required}
+      disabled={disabled}
+      readonly={readonly}
+      min={min}
+      max={max}
+      step={step}
+      pattern={pattern}
+      autocomplete={autocomplete}
+      autofocus={autofocus}
+      {...ariaAttributes}
+    />
+  </div>
+  
+  {helperText && !error && (
+    <div class="helper-text" id={helperId}>{helperText}</div>
+  )}
+  
+  {error && (
+    <div class="error-message" id={errorId}>
+      <span class="error-icon" aria-hidden="true"></span>
+      {error}
+    </div>
+  )}
+</div>
+
+<style>
+  .input-container {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    font-family: var(--font-main);
+  }
+  
+  .w-full {
+    width: 100%;
+  }
+  
+  .input-label {
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-medium);
+    color: var(--text-primary);
+    margin-bottom: var(--space-1);
+    display: inline-block;
+  }
+  
+  .required-indicator {
+    color: var(--state-error-color);
+    margin-left: var(--space-1);
+  }
+  
+  .input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+  
+  .input-field {
+    font-family: inherit;
+    font-size: var(--text-base);
+    color: var(--text-primary);
+    background-color: var(--background-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 0.6rem 0.8rem;
+    width: 100%;
+    transition: all var(--transition-fast);
+  }
+  
+  .input-field:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: var(--focus-ring);
+  }
+  
+  .input-field::placeholder {
+    color: var(--text-tertiary);
+    opacity: 0.7;
+  }
+  
+  .input-field:disabled {
+    opacity: var(--disabled-opacity);
+    cursor: not-allowed;
+    background-color: var(--background-secondary);
+  }
+  
+  .input-field:read-only {
+    background-color: var(--background-secondary);
+    border-style: dashed;
+  }
+  
+  /* Tamaños */
+  .input-sm {
+    padding: 0.4rem 0.6rem;
+    font-size: var(--text-sm);
+  }
+  
+  .input-lg {
+    padding: 0.8rem 1rem;
+    font-size: var(--text-lg);
+  }
+  
+  /* Estilos para input con icono */
+  .has-icon {
+    padding-left: 2.5rem;
+  }
+  
+  .input-icon {
+    position: absolute;
+    left: 0.8rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-tertiary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.2rem;
+    height: 1.2rem;
+    pointer-events: none;
+  }
+  
+  /* Mensajes de error y ayuda */
+  .helper-text {
+    font-size: var(--text-xs);
+    color: var(--text-tertiary);
+    margin-top: var(--space-1);
+  }
+  
+  .error-message {
+    font-size: var(--text-xs);
+    color: var(--state-error-color);
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+    margin-top: var(--space-1);
+  }
+  
+  .error-icon {
+    width: 0.8rem;
+    height: 0.8rem;
+    background-color: currentColor;
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='currentColor'%3E%3Cpath fill-rule='evenodd' d='M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z' clip-rule='evenodd'%3E%3C/path%3E%3C/svg%3E");
+    mask-size: contain;
+    mask-repeat: no-repeat;
+    mask-position: center;
+  }
+  
+  .input-error {
+    border-color: var(--state-error-color);
+  }
+  
+  .input-error:focus {
+    box-shadow: var(--focus-ring-error);
+  }
+  
+  /* Input a pantalla completa */
+  .input-full {
+    width: 100%;
+  }
+</style> 

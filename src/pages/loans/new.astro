@@ -1,0 +1,474 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import DashboardHeader from '../../components/DashboardHeader.astro';
+import Card from '../../components/ui/Card.astro';
+import Button from '../../components/ui/Button.astro';
+import QRScannerLoan from '../../components/QRScannerLoan.astro';
+import Toast from '../../components/ui/Toast.astro';
+import { prisma } from '../../lib/prisma.js';
+
+// Obtener el ID del dispositivo de los parámetros de la URL
+const deviceId = Astro.url.searchParams.get('deviceId');
+
+// Si hay un deviceId, obtener la información del dispositivo
+let device = null;
+if (deviceId) {
+  device = await prisma.device.findUnique({
+    where: { id: deviceId },
+    include: {
+      supervisor: true
+    }
+  });
+}
+
+// Obtener lista de supervisores para el formulario
+const supervisors = await prisma.supervisor.findMany({
+  where: {
+    status: 'active'
+  },
+  orderBy: {
+    name: 'asc'
+  }
+});
+---
+
+<Layout title="Nuevo Préstamo">
+  <DashboardHeader title="Nuevo Préstamo" />
+
+  <div class="loan-container">
+    <div class="grid-layout">
+      <!-- Sección del escáner QR -->
+      <div class="scanner-section">
+        <Card variant="elevated">
+          <div class="card-header">
+            <h2 class="section-title">Escanear Dispositivos</h2>
+            <p class="section-subtitle">Usa el escáner para agregar dispositivos al préstamo</p>
+          </div>
+          
+          <QRScannerLoan
+            title="Agregar Dispositivo"
+            subtitle="Escanea el código QR del dispositivo para agregarlo al préstamo"
+          />
+        </Card>
+      </div>
+      
+      <!-- Sección del formulario y carrito -->
+      <div class="form-section">
+        <Card variant="elevated" class="loan-form-card">
+          <h2 class="form-title">Registrar Préstamo</h2>
+          
+          <div class="cart-section" id="deviceCart">
+            <h3>Dispositivos Seleccionados</h3>
+            <div class="cart-items">
+              {device && (
+                <div class="cart-item" data-device-id={device.id}>
+                  <div class="device-info">
+                    <h4>{device.name}</h4>
+                    <p>Ubicación: {device.location}</p>
+                  </div>
+                  <button class="remove-btn" data-device-id={device.id}>
+                    Eliminar
+                  </button>
+                </div>
+              )}
+            </div>
+            <div class="cart-empty" style={device ? "display: none" : ""}>
+              No hay dispositivos seleccionados
+            </div>
+          </div>
+
+          <form id="loanForm" class="loan-form">
+            <div class="form-group">
+              <label for="supervisorId">Supervisor Responsable</label>
+              <select id="supervisorId" name="supervisorId" required>
+                <option value="">Seleccionar supervisor...</option>
+                {supervisors.map((supervisor) => (
+                  <option value={supervisor.id}>{supervisor.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="eventCode">Código de Evento</label>
+              <input 
+                type="text" 
+                id="eventCode" 
+                name="eventCode" 
+                required 
+                placeholder="Ej: EVT-2024-001"
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="newLocation">Nueva Ubicación</label>
+              <input 
+                type="text" 
+                id="newLocation" 
+                name="newLocation" 
+                required 
+                placeholder="Ej: Sala de Conferencias A"
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="notes">Notas (Opcional)</label>
+              <textarea 
+                id="notes" 
+                name="notes" 
+                rows="3" 
+                placeholder="Agregar notas o comentarios adicionales..."
+              ></textarea>
+            </div>
+
+            <div class="form-actions">
+              <Button
+                type="button"
+                variant="secondary"
+                href="/loans"
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="submit"
+                variant="primary"
+                disabled={!device}
+              >
+                Registrar Préstamo
+              </Button>
+            </div>
+          </form>
+        </Card>
+      </div>
+    </div>
+  </div>
+</Layout>
+
+<style>
+  .loan-container {
+    max-width: 1200px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+  }
+
+  .grid-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+  }
+
+  .section-title {
+    font-size: var(--text-xl);
+    font-weight: var(--font-weight-bold);
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+  }
+
+  .section-subtitle {
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    margin-bottom: 1.5rem;
+  }
+
+  .loan-form-card {
+    padding: 2rem;
+  }
+
+  .form-title {
+    font-size: var(--text-xl);
+    font-weight: var(--font-weight-bold);
+    color: var(--text-primary);
+    margin-bottom: var(--space-6);
+  }
+
+  .cart-section {
+    margin-bottom: var(--space-6);
+    padding: var(--space-4);
+    background: var(--background-tertiary);
+    border-radius: var(--radius-lg);
+  }
+
+  .cart-section h3 {
+    font-size: var(--text-lg);
+    margin-bottom: var(--space-4);
+    color: var(--text-primary);
+  }
+
+  .cart-items {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    max-height: 300px;
+    overflow-y: auto;
+  }
+
+  .cart-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-3);
+    background: var(--background-elevated);
+    border-radius: var(--radius-md);
+  }
+
+  .device-info h4 {
+    font-size: var(--text-base);
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-primary);
+    margin: 0;
+  }
+
+  .device-info p {
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    margin: var(--space-1) 0 0 0;
+  }
+
+  .remove-btn {
+    padding: var(--space-2) var(--space-4);
+    background: var(--state-error-color);
+    color: white;
+    border: none;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    font-size: var(--text-sm);
+    transition: opacity 0.2s;
+  }
+
+  .remove-btn:hover {
+    opacity: 0.9;
+  }
+
+  .cart-empty {
+    text-align: center;
+    padding: var(--space-4);
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+  }
+
+  .loan-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .form-group label {
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-medium);
+    color: var(--text-primary);
+  }
+
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    padding: var(--space-3);
+    background: var(--background-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-size: var(--text-base);
+    width: 100%;
+  }
+
+  .form-group input:focus,
+  .form-group select:focus,
+  .form-group textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+
+  .form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--space-4);
+    margin-top: var(--space-6);
+  }
+
+  @media (max-width: 992px) {
+    .grid-layout {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
+<script>
+  const form = document.getElementById('loanForm') as HTMLFormElement;
+  const cart = document.getElementById('deviceCart');
+  const cartItems = cart?.querySelector('.cart-items');
+  const cartEmpty = cart?.querySelector('.cart-empty');
+  
+  // Función para actualizar la visibilidad del mensaje de carrito vacío
+  function updateCartEmpty() {
+    if (cartItems && cartEmpty) {
+      const hasItems = cartItems.children.length > 0;
+      if (cartEmpty instanceof HTMLElement) {
+        cartEmpty.style.display = hasItems ? 'none' : 'block';
+      }
+      
+      // También actualizar el estado del botón submit
+      const submitBtn = form?.querySelector('button[type="submit"]');
+      if (submitBtn instanceof HTMLButtonElement) {
+        submitBtn.disabled = !hasItems;
+      }
+    }
+  }
+
+  // Verificar si hay dispositivos en localStorage
+  document.addEventListener('DOMContentLoaded', () => {
+    const savedDevice = localStorage.getItem('scannedDevice');
+    if (savedDevice) {
+      try {
+        const device = JSON.parse(savedDevice);
+        // Verificar si ya existe en el carrito
+        const existingItem = cartItems?.querySelector(`[data-device-id="${device.id}"]`);
+        if (!existingItem && cartItems) {
+          // Crear elemento de carrito para el dispositivo
+          const cartItem = document.createElement('div');
+          cartItem.className = 'cart-item';
+          cartItem.dataset.deviceId = device.id;
+          cartItem.innerHTML = `
+            <div class="device-info">
+              <h4>${device.name}</h4>
+              <p>Ubicación: ${device.location}</p>
+            </div>
+            <button class="remove-btn" data-device-id="${device.id}">
+              Eliminar
+            </button>
+          `;
+          
+          // Agregar al carrito
+          cartItems.appendChild(cartItem);
+          
+          // Establecer evento de eliminación
+          const removeBtn = cartItem.querySelector('.remove-btn');
+          removeBtn?.addEventListener('click', function() {
+            cartItem.remove();
+            updateCartEmpty();
+          });
+          
+          // Actualizar visibilidad
+          updateCartEmpty();
+        }
+      } catch (error) {
+        console.error('Error al procesar dispositivo guardado:', error);
+      }
+      
+      // Limpiar localStorage
+      localStorage.removeItem('scannedDevice');
+    }
+  });
+
+  // Manejar eliminación de dispositivos del carrito
+  document.querySelectorAll('.remove-btn').forEach(btn => {
+    btn.addEventListener('click', function(this: HTMLElement) {
+      const deviceId = this.dataset.deviceId;
+      const cartItem = document.querySelector(`.cart-item[data-device-id="${deviceId}"]`);
+      if (cartItem) {
+        cartItem.remove();
+        updateCartEmpty();
+      }
+    });
+  });
+
+  // Manejar envío del formulario
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    try {
+      const formData = new FormData(form);
+      
+      // Obtener y validar deviceIds
+      const deviceIds = Array.from(cartItems?.children || [])
+        .map(item => item.getAttribute('data-device-id'))
+        .filter(Boolean);
+      
+      console.log('Dispositivos seleccionados:', deviceIds);
+
+      if (!deviceIds.length) {
+        alert('Debe seleccionar al menos un dispositivo');
+        return;
+      }
+      
+      // Obtener y validar supervisorId
+      const supervisorId = formData.get('supervisorId');
+      console.log('Supervisor seleccionado:', supervisorId);
+      
+      if (!supervisorId) {
+        alert('Debe seleccionar un supervisor');
+        return;
+      }
+
+      const requestData = {
+        deviceIds,
+        supervisorId,
+        eventCode: formData.get('eventCode'),
+        newLocation: formData.get('newLocation'),
+        notes: formData.get('notes'),
+      };
+
+      console.log('Enviando datos:', JSON.stringify(requestData, null, 2));
+
+      // Deshabilitar el formulario mientras se envía
+      const submitBtn = form.querySelector('button[type="submit"]');
+      if (submitBtn instanceof HTMLButtonElement) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Procesando...';
+      }
+
+      const response = await fetch('/api/loans', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestData),
+      });
+
+      // Reactivar el botón
+      if (submitBtn instanceof HTMLButtonElement) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Registrar Préstamo';
+      }
+
+      // Analizar la respuesta
+      let responseData;
+      try {
+        responseData = await response.json();
+        console.log('Respuesta del servidor:', responseData);
+      } catch (parseError) {
+        console.error('Error al parsear la respuesta:', parseError);
+        throw new Error('No se pudo procesar la respuesta del servidor');
+      }
+
+      if (!response.ok) {
+        const errorMsg = responseData.error || 'Error desconocido';
+        const errorDetails = responseData.details || '';
+        const errorCode = responseData.code || 'UNKNOWN_ERROR';
+        
+        console.error('Error al crear préstamo:', {
+          status: response.status,
+          statusText: response.statusText,
+          errorMsg,
+          errorCode,
+          errorDetails
+        });
+        
+        throw new Error(`${errorMsg} (${errorCode})${errorDetails ? '\n\nDetalles: ' + errorDetails : ''}`);
+      }
+
+      // Redirigir a la página de préstamos con mensaje de éxito
+      window.location.href = '/loans?success=true';
+
+    } catch (error) {
+      console.error('Error completo:', error);
+      alert(error instanceof Error ? error.message : 'Error al procesar el préstamo');
+    }
+  });
+
+  // Actualizar estado inicial del carrito
+  updateCartEmpty();
+</script> 

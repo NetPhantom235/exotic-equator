@@ -1,0 +1,148 @@
+---
+interface Step {
+  id: string;
+  label: string;
+  completed?: boolean;
+  current?: boolean;
+}
+
+interface Props {
+  steps: Step[];
+  currentStep: number;
+  showLabels?: boolean;
+}
+
+const { steps, currentStep, showLabels = true } = Astro.props;
+---
+
+<div class="progress-container">
+  <div class="progress-track"></div>
+  <div class="progress-steps">
+    {steps.map((step, index) => {
+      const status = 
+        index < currentStep ? 'completed' :
+        index === currentStep ? 'current' : 'pending';
+        
+      return (
+        <div class={`progress-step progress-step-${status}`}>
+          <div class="progress-indicator">
+            {status === 'completed' ? (
+              <span class="progress-icon-check"></span>
+            ) : (
+              <span class="progress-step-number">{index + 1}</span>
+            )}
+          </div>
+          {showLabels && (
+            <div class="progress-label">{step.label}</div>
+          )}
+        </div>
+      );
+    })}
+  </div>
+</div>
+
+<style>
+  .progress-container {
+    width: 100%;
+    margin: 2rem 0;
+    position: relative;
+    padding: 0 1rem;
+  }
+  
+  .progress-track {
+    position: absolute;
+    top: 16px;
+    left: 1.5rem;
+    right: 1.5rem;
+    height: 2px;
+    background: var(--border-color);
+    z-index: 1;
+  }
+  
+  .progress-steps {
+    display: flex;
+    justify-content: space-between;
+    position: relative;
+    z-index: 2;
+  }
+  
+  .progress-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  
+  .progress-indicator {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    background: var(--background-tertiary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 0.5rem;
+    border: 2px solid var(--border-color);
+    color: var(--text-secondary);
+    font-weight: 600;
+    font-size: 0.85rem;
+    transition: all 0.3s var(--transition-ease);
+  }
+  
+  .progress-step-completed .progress-indicator {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+  }
+  
+  .progress-step-current .progress-indicator {
+    background: var(--background-tertiary);
+    border-color: var(--accent);
+    color: var(--accent);
+    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.2);
+  }
+  
+  .progress-icon-check {
+    width: 1rem;
+    height: 1rem;
+    background-color: currentColor;
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='currentColor'%3E%3Cpath fill-rule='evenodd' d='M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z' clip-rule='evenodd'%3E%3C/path%3E%3C/svg%3E");
+    mask-size: contain;
+    mask-repeat: no-repeat;
+    mask-position: center;
+  }
+  
+  .progress-label {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    margin-top: 0.25rem;
+    max-width: 7rem;
+    overflow-wrap: break-word;
+    transition: color 0.3s;
+  }
+  
+  .progress-step-current .progress-label {
+    color: var(--text-primary);
+    font-weight: 500;
+  }
+  
+  .progress-step-completed .progress-label {
+    color: var(--accent);
+  }
+  
+  @media (max-width: 640px) {
+    .progress-container {
+      padding: 0;
+    }
+    
+    .progress-track {
+      left: 2rem;
+      right: 2rem;
+    }
+    
+    .progress-label {
+      font-size: 0.75rem;
+      max-width: 5rem;
+    }
+  }
+</style> 

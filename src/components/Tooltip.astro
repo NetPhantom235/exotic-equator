@@ -1,0 +1,147 @@
+---
+interface Props {
+  text: string;
+  position?: 'top' | 'bottom' | 'left' | 'right';
+  extraClass?: string;
+}
+
+const { 
+  text, 
+  position = 'top',
+  extraClass = ''
+} = Astro.props;
+---
+
+<div class={`tooltip-container ${extraClass}`}>
+  <slot />
+  <span class={`tooltip tooltip-${position}`} role="tooltip">{text}</span>
+</div>
+
+<style>
+  .tooltip-container {
+    position: relative;
+    display: inline-flex;
+  }
+  
+  .tooltip {
+    position: absolute;
+    background: var(--background-tertiary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    font-size: 0.85rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 6px;
+    z-index: 100;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s, visibility 0.2s;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+    pointer-events: none;
+    max-width: 16rem;
+    text-align: center;
+    line-height: 1.4;
+    white-space: normal;
+  }
+  
+  .tooltip-top {
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%) translateY(-8px);
+    margin-bottom: 8px;
+  }
+  
+  .tooltip-bottom {
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%) translateY(8px);
+    margin-top: 8px;
+  }
+  
+  .tooltip-left {
+    right: 100%;
+    top: 50%;
+    transform: translateY(-50%) translateX(-8px);
+    margin-right: 8px;
+  }
+  
+  .tooltip-right {
+    left: 100%;
+    top: 50%;
+    transform: translateY(-50%) translateX(8px);
+    margin-left: 8px;
+  }
+  
+  .tooltip-container:hover .tooltip {
+    opacity: 1;
+    visibility: visible;
+  }
+  
+  .tooltip::after {
+    content: "";
+    position: absolute;
+    border-style: solid;
+    border-width: 6px;
+  }
+  
+  .tooltip-top::after {
+    border-color: var(--background-tertiary) transparent transparent transparent;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+  
+  .tooltip-bottom::after {
+    border-color: transparent transparent var(--background-tertiary) transparent;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+  
+  .tooltip-left::after {
+    border-color: transparent transparent transparent var(--background-tertiary);
+    left: 100%;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+  
+  .tooltip-right::after {
+    border-color: transparent var(--background-tertiary) transparent transparent;
+    right: 100%;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+</style>
+
+<script>
+  // Asegurarse de que los tooltips no se salgan de la ventana
+  document.addEventListener('DOMContentLoaded', () => {
+    const tooltips = document.querySelectorAll('.tooltip');
+    
+    tooltips.forEach(tooltip => {
+      const container = tooltip.parentElement;
+      if (!container) return;
+      
+      const rect = container.getBoundingClientRect();
+      const tooltipRect = tooltip.getBoundingClientRect();
+      
+      // Comprobar posición horizontal
+      if (tooltipRect.left < 10) {
+        (tooltip as HTMLElement).style.left = '10px';
+        (tooltip as HTMLElement).style.transform = 'none';
+      } else if (tooltipRect.right > window.innerWidth - 10) {
+        (tooltip as HTMLElement).style.left = 'auto';
+        (tooltip as HTMLElement).style.right = '10px';
+        (tooltip as HTMLElement).style.transform = 'none';
+      }
+      
+      // Comprobar posición vertical
+      if (tooltipRect.top < 10) {
+        tooltip.classList.remove('tooltip-top');
+        tooltip.classList.add('tooltip-bottom');
+      } else if (tooltipRect.bottom > window.innerHeight - 10) {
+        tooltip.classList.remove('tooltip-bottom');
+        tooltip.classList.add('tooltip-top');
+      }
+    });
+  });
+</script> 

@@ -1,0 +1,107 @@
+---
+interface Props {
+  message: string;
+  type?: 'success' | 'error' | 'info' | 'warning';
+  autoClose?: number;
+}
+
+const {
+  message,
+  type = 'info',
+  autoClose = 0
+} = Astro.props;
+
+const typeClasses = {
+  success: 'bg-green-500 text-white',
+  error: 'bg-red-500 text-white',
+  info: 'bg-blue-500 text-white',
+  warning: 'bg-yellow-500 text-white'
+};
+---
+
+<div
+  class={`toast ${typeClasses[type]}`}
+  data-auto-close={autoClose}
+  role="alert"
+>
+  <div class="toast-content">
+    <span class="toast-message">{message}</span>
+  </div>
+</div>
+
+<style>
+  .toast {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    z-index: 1000;
+    padding: 1rem 1.5rem;
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    opacity: 0;
+    transform: translateY(-1rem);
+    animation: slideIn 0.3s ease forwards;
+  }
+
+  .toast-content {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .toast-message {
+    font-size: 0.875rem;
+    font-weight: 500;
+  }
+
+  @keyframes slideIn {
+    from {
+      opacity: 0;
+      transform: translateY(-1rem);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes slideOut {
+    from {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    to {
+      opacity: 0;
+      transform: translateY(-1rem);
+    }
+  }
+
+  .toast.hiding {
+    animation: slideOut 0.3s ease forwards;
+  }
+</style>
+
+<script>
+  // Función para inicializar los toasts
+  function initializeToasts() {
+    document.querySelectorAll('.toast').forEach(toast => {
+      const autoClose = parseInt(toast.getAttribute('data-auto-close') || '0', 10);
+      
+      if (autoClose > 0) {
+        // Cerrar automáticamente después del tiempo especificado
+        setTimeout(() => {
+          toast.classList.add('hiding');
+          setTimeout(() => {
+            toast.remove();
+          }, 300); // Duración de la animación
+        }, autoClose);
+      }
+    });
+  }
+
+  // Inicializar al cargar la página
+  document.addEventListener('DOMContentLoaded', initializeToasts);
+
+  // Reinicializar cuando cambie el contenido (navegación con Astro)
+  document.addEventListener('astro:after-swap', initializeToasts);
+</script> 

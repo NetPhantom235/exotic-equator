@@ -1,0 +1,22 @@
+---
+import { authService } from "../lib/auth/authService.js";
+import { SessionManager } from "../lib/auth/sessionManager.js";
+
+// Obtener el token de sesión de la cookie
+const sessionToken = Astro.cookies.get("session")?.value;
+
+// Si hay un token, cerrar sesión
+if (sessionToken) {
+  const sessionManager = new SessionManager();
+  await sessionManager.invalidateSession(sessionToken);
+
+  // Eliminar la cookie de sesión usando las opciones del SessionManager
+  Astro.cookies.delete(
+    "session",
+    sessionManager.getCookieOptions(Astro.request)
+  );
+}
+
+// Redirigir a la página de login
+return Astro.redirect("/login");
+---

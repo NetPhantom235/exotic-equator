@@ -1,0 +1,132 @@
+---
+interface Props {
+  variant?: 'text' | 'circle' | 'rectangle' | 'card' | 'button';
+  width?: string;
+  height?: string;
+  animated?: boolean;
+  className?: string;
+  count?: number;
+  rounded?: boolean;
+}
+
+const {
+  variant = 'text',
+  width,
+  height,
+  animated = true,
+  className = '',
+  count = 1,
+  rounded = false
+} = Astro.props;
+
+// Dimensiones predeterminadas según la variante
+let defaultDimensions = {
+  text: { width: '100%', height: '1em' },
+  circle: { width: '40px', height: '40px' },
+  rectangle: { width: '100%', height: '100px' },
+  card: { width: '100%', height: '200px' },
+  button: { width: '120px', height: '2.5em' }
+};
+
+// Aplicar dimensiones
+const skeletonWidth = width || defaultDimensions[variant].width;
+const skeletonHeight = height || defaultDimensions[variant].height;
+
+// Clases según variante
+const variantClass = `skeleton-${variant}`;
+
+// Composición de clases
+const classes = [
+  'skeleton',
+  variantClass,
+  animated ? 'skeleton-animated' : '',
+  rounded ? 'skeleton-rounded' : '',
+  className
+].filter(Boolean).join(' ');
+
+// Generador de elementos skeleton
+const renderSkeleton = (index: number) => {
+  return (
+    <div 
+      class={classes}
+      style={`width: ${skeletonWidth}; height: ${skeletonHeight};`}
+      aria-hidden="true"
+      data-testid={`skeleton-${variant}-${index}`}
+    />
+  );
+};
+---
+
+{
+  Array.from({ length: count }).map((_, index) => (
+    renderSkeleton(index)
+  ))
+}
+
+<style>
+  .skeleton {
+    display: inline-block;
+    position: relative;
+    overflow: hidden;
+    background-color: var(--background-tertiary);
+    border-radius: var(--radius-sm);
+  }
+  
+  .skeleton-animated::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.08),
+      transparent
+    );
+    animation: shimmer 1.5s infinite;
+  }
+  
+  .skeleton-rounded {
+    border-radius: var(--radius-full);
+  }
+  
+  .skeleton-text {
+    margin-bottom: 0.5em;
+    border-radius: var(--radius-sm);
+  }
+  
+  .skeleton-circle {
+    border-radius: 50%;
+  }
+  
+  .skeleton-card {
+    border-radius: var(--card-radius);
+  }
+  
+  .skeleton-button {
+    border-radius: var(--radius-md);
+  }
+  
+  @keyframes shimmer {
+    100% {
+      transform: translateX(100%);
+    }
+  }
+  
+  /* Adaptación para modo claro/oscuro */
+  :root[data-theme="light"] .skeleton {
+    background-color: rgba(0, 0, 0, 0.06);
+  }
+  
+  :root[data-theme="light"] .skeleton-animated::after {
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(0, 0, 0, 0.06),
+      transparent
+    );
+  }
+</style> 

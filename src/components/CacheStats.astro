@@ -1,0 +1,284 @@
+---
+// CacheStats.astro - Component to display cache statistics and performance
+import { PrismaClient } from "../lib/prisma-adapter.js";
+
+// Valores predeterminados en caso de error
+let totalHits = 0;
+let totalMisses = 0;
+let totalRequests = 0;
+let hitRate = 0;
+
+// Determinar estado del caché
+let cacheStatus = "Bajo";
+
+try {
+  // Simulamos estadísticas de caché
+  totalHits = 850;
+  totalMisses = 150;
+  totalRequests = totalHits + totalMisses;
+  hitRate = (totalHits / totalRequests) * 100;
+  
+  // Evaluar el estado del caché
+  cacheStatus = 
+    hitRate >= 80 ? "Excelente" :
+    hitRate >= 60 ? "Bueno" :
+    hitRate >= 40 ? "Regular" :
+    "Bajo";
+} catch (error) {
+  console.error('Error al obtener estadísticas de caché:', error);
+}
+---
+
+<div class="cache-container">
+  <h2 class="cache-title">Estado del Caché</h2>
+  
+  <div class="cache-grid">
+    <div class="cache-metrics">
+      <div class="cache-stat">
+        <span class="stat-label">Tasa de Aciertos</span>
+        <div class="stat-value-container">
+          <span class="stat-value">{hitRate.toFixed(1)}%</span>
+          <span class={`status-badge status-${cacheStatus.toLowerCase()}`}>{cacheStatus}</span>
+        </div>
+      </div>
+      
+      <div class="stat-grid">
+        <div class="stat-item">
+          <span class="stat-item-value">{totalHits.toLocaleString()}</span>
+          <span class="stat-item-label">Aciertos</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-item-value">{totalMisses.toLocaleString()}</span>
+          <span class="stat-item-label">Fallos</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-item-value">{totalRequests.toLocaleString()}</span>
+          <span class="stat-item-label">Total Solicitudes</span>
+        </div>
+      </div>
+    </div>
+    
+    <div class="cache-chart">
+      <div class="progress-container">
+        <div class="progress-label">Rendimiento del Caché</div>
+        <div class="progress-bar">
+          <div class="progress-fill" style={`width: ${hitRate}%`}></div>
+          <div class="progress-markers">
+            <div class="marker marker-low" style="left: 25%">Bajo</div>
+            <div class="marker marker-medium" style="left: 50%">Regular</div>
+            <div class="marker marker-high" style="left: 75%">Bueno</div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="tips-container">
+        <h3 class="tips-title">Recomendaciones</h3>
+        {hitRate < 60 && (
+          <ul class="tips-list">
+            <li>Aumenta el tamaño del caché</li>
+            <li>Revisa la estrategia de invalidación</li>
+            <li>Identifica consultas frecuentes para cachear</li>
+          </ul>
+        )}
+        {hitRate >= 60 && hitRate < 80 && (
+          <ul class="tips-list">
+            <li>El caché funciona bien, pero puede mejorar</li>
+            <li>Considera ajustar el tiempo de vida (TTL)</li>
+            <li>Monitorea el uso de memoria</li>
+          </ul>
+        )}
+        {hitRate >= 80 && (
+          <ul class="tips-list">
+            <li>¡El caché está funcionando de manera óptima!</li>
+            <li>Continúa monitoreando para mantener el rendimiento</li>
+          </ul>
+        )}
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .cache-container {
+    background: var(--background-secondary);
+    border-radius: var(--card-radius);
+    padding: 1.5rem;
+    margin-top: 2rem;
+    box-shadow: var(--shadow);
+  }
+  
+  .cache-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 1.5rem;
+  }
+  
+  .cache-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+  }
+  
+  .cache-metrics {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+  
+  .cache-stat {
+    background: var(--background-tertiary);
+    padding: 1.25rem;
+    border-radius: 0.75rem;
+  }
+  
+  .stat-label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+    display: block;
+  }
+  
+  .stat-value-container {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+  }
+  
+  .stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+  
+  .status-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+  
+  .status-excelente {
+    background-color: rgba(16, 185, 129, 0.1);
+    color: #10b981;
+  }
+  
+  .status-bueno {
+    background-color: rgba(59, 130, 246, 0.1);
+    color: #3b82f6;
+  }
+  
+  .status-regular {
+    background-color: rgba(245, 158, 11, 0.1);
+    color: #f59e0b;
+  }
+  
+  .status-bajo {
+    background-color: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+  }
+  
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+    gap: 1rem;
+  }
+  
+  .stat-item {
+    background: var(--background-tertiary);
+    padding: 1rem;
+    border-radius: 0.75rem;
+    text-align: center;
+  }
+  
+  .stat-item-value {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    display: block;
+    margin-bottom: 0.25rem;
+  }
+  
+  .stat-item-label {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    display: block;
+  }
+  
+  .cache-chart {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+  
+  .progress-container {
+    background: var(--background-tertiary);
+    padding: 1.25rem;
+    border-radius: 0.75rem;
+  }
+  
+  .progress-label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin-bottom: 1rem;
+  }
+  
+  .progress-bar {
+    height: 1rem;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 9999px;
+    position: relative;
+    margin-bottom: 1.5rem;
+  }
+  
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #ef4444 0%, #f59e0b 25%, #3b82f6 75%, #10b981 100%);
+    border-radius: 9999px;
+    transition: width 0.5s ease;
+  }
+  
+  .progress-markers {
+    position: absolute;
+    top: 1.5rem;
+    left: 0;
+    width: 100%;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+  }
+  
+  .marker {
+    position: absolute;
+    transform: translateX(-50%);
+  }
+  
+  .tips-container {
+    background: var(--background-tertiary);
+    padding: 1.25rem;
+    border-radius: 0.75rem;
+  }
+  
+  .tips-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.75rem;
+  }
+  
+  .tips-list {
+    padding-left: 1.25rem;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+  }
+  
+  .tips-list li {
+    margin-bottom: 0.5rem;
+  }
+  
+  .tips-list li:last-child {
+    margin-bottom: 0;
+  }
+</style>

@@ -1,0 +1,54 @@
+---
+// Componente para cambiar entre tema claro y oscuro
+---
+
+<button id="themeToggle" class="theme-toggle" aria-label="Cambiar tema">
+  <span class="theme-toggle-icon theme-toggle-sun"></span>
+  <span class="theme-toggle-icon theme-toggle-moon"></span>
+</button>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const themeToggle = document.getElementById('themeToggle');
+    const htmlEl = document.documentElement;
+    
+    // Comprobar si hay tema guardado
+    const savedTheme = localStorage.getItem('theme');
+    
+    // Comprobar preferencia del sistema
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    
+    // Establecer tema inicial
+    const initialTheme = savedTheme || (prefersDark ? 'dark' : 'light');
+    htmlEl.setAttribute('data-theme', initialTheme);
+    
+    // Cambiar tema al hacer clic
+    if (themeToggle) {
+      themeToggle.addEventListener('click', function() {
+        const currentTheme = htmlEl.getAttribute('data-theme') || 'dark';
+        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        
+        // Cambiar atributo
+        htmlEl.setAttribute('data-theme', newTheme);
+        
+        // Guardar preferencia
+        localStorage.setItem('theme', newTheme);
+        
+        // Notificar al usuario
+        if (window.toast) {
+          window.toast.info(
+            `Modo ${newTheme === 'dark' ? 'oscuro' : 'claro'} activado`,
+            'Tema cambiado'
+          );
+        }
+      });
+    }
+    
+    // Actualizar tema si cambia la preferencia del sistema
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+      if (!localStorage.getItem('theme')) {
+        htmlEl.setAttribute('data-theme', e.matches ? 'dark' : 'light');
+      }
+    });
+  });
+</script> 

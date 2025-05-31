@@ -1,0 +1,196 @@
+---
+import { PrismaClient } from "@prisma/client";
+
+// Obtener métricas de la base de datos
+const prisma = new PrismaClient();
+
+// Recuperar métricas del sistema
+const queryMetrics = await prisma.queryMetric.findMany({
+  orderBy: {
+    timestamp: 'desc'
+  },
+  take: 20
+});
+
+// Calcular métricas agregadas
+const totalQueries = queryMetrics.length;
+const averageQueryTime = queryMetrics.length > 0 
+  ? queryMetrics.reduce((acc, q) => acc + q.queryTime, 0) / queryMetrics.length 
+  : 0;
+const slowQueries = queryMetrics.filter(q => q.isSlow).length;
+const errorQueries = queryMetrics.filter(q => q.error !== null).length;
+
+// Convertir a porcentajes
+const slowQueriesPercentage = totalQueries > 0 ? (slowQueries / totalQueries) * 100 : 0;
+const errorQueriesPercentage = totalQueries > 0 ? (errorQueries / totalQueries) * 100 : 0;
+
+// Cerrar la conexión
+await prisma.$disconnect();
+---
+
+<div class="metrics-container">
+  <h2 class="metrics-title">Rendimiento del Sistema</h2>
+  
+  <div class="metrics-grid">
+    <div class="metric-card">
+      <div class="metric-header">
+        <span class="metric-icon query-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+        </span>
+        <h3 class="metric-name">Consultas</h3>
+      </div>
+      <div class="metric-value">{totalQueries} <span class="metric-unit">recientes</span></div>
+    </div>
+    
+    <div class="metric-card">
+      <div class="metric-header">
+        <span class="metric-icon time-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polyline points="12 6 12 12 16 14"></polyline>
+          </svg>
+        </span>
+        <h3 class="metric-name">Tiempo Promedio</h3>
+      </div>
+      <div class="metric-value">{averageQueryTime.toFixed(2)} <span class="metric-unit">ms</span></div>
+    </div>
+    
+    <div class="metric-card">
+      <div class="metric-header">
+        <span class="metric-icon slow-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="2" x2="12" y2="6"></line>
+            <line x1="12" y1="18" x2="12" y2="22"></line>
+            <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line>
+            <line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line>
+            <line x1="2" y1="12" x2="6" y2="12"></line>
+            <line x1="18" y1="12" x2="22" y2="12"></line>
+            <line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line>
+            <line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line>
+          </svg>
+        </span>
+        <h3 class="metric-name">Consultas Lentas</h3>
+      </div>
+      <div class="metric-value">{slowQueriesPercentage.toFixed(1)}<span class="metric-unit">%</span></div>
+    </div>
+    
+    <div class="metric-card">
+      <div class="metric-header">
+        <span class="metric-icon error-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+            <line x1="12" y1="9" x2="12" y2="13"></line>
+            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+          </svg>
+        </span>
+        <h3 class="metric-name">Errores</h3>
+      </div>
+      <div class="metric-value">{errorQueriesPercentage.toFixed(1)}<span class="metric-unit">%</span></div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .metrics-container {
+    background: var(--background-secondary);
+    border-radius: var(--card-radius);
+    padding: 1.5rem;
+    margin-top: 2rem;
+    box-shadow: var(--shadow);
+  }
+  
+  .metrics-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 1.5rem;
+  }
+  
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.25rem;
+  }
+  
+  .metric-card {
+    background: var(--background-tertiary);
+    border-radius: 0.75rem;
+    padding: 1.25rem;
+    transition: transform 0.2s ease;
+  }
+  
+  .metric-card:hover {
+    transform: translateY(-3px);
+  }
+  
+  .metric-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+  }
+  
+  .metric-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 0.5rem;
+    padding: 0.5rem;
+  }
+  
+  .query-icon {
+    background-color: rgba(59, 130, 246, 0.1);
+    color: #3b82f6;
+  }
+  
+  .time-icon {
+    background-color: rgba(16, 185, 129, 0.1);
+    color: #10b981;
+  }
+  
+  .slow-icon {
+    background-color: rgba(245, 158, 11, 0.1);
+    color: #f59e0b;
+  }
+  
+  .error-icon {
+    background-color: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+  }
+  
+  .metric-name {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin: 0;
+  }
+  
+  .metric-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+  
+  .metric-unit {
+    font-size: 0.875rem;
+    font-weight: 400;
+    color: var(--text-secondary);
+  }
+  
+  @media (max-width: 768px) {
+    .metrics-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+  
+  @media (max-width: 480px) {
+    .metrics-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

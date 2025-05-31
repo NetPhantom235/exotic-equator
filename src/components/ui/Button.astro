@@ -1,0 +1,144 @@
+---
+interface Props {
+  variant?: 'primary' | 'secondary' | 'danger' | 'ghost' | 'outline';
+  size?: 'sm' | 'md' | 'lg';
+  fullWidth?: boolean;
+  disabled?: boolean;
+  loading?: boolean;
+  type?: 'button' | 'submit' | 'reset';
+  href?: string;
+  ariaLabel?: string;
+  id?: string;
+  class?: string;
+  state?: 'success' | 'error';
+  onClick?: string;
+}
+
+const {
+  variant = 'primary',
+  size = 'md',
+  fullWidth = false,
+  disabled = false,
+  loading = false,
+  type = 'button',
+  href,
+  ariaLabel,
+  id,
+  class: className = '',
+  state,
+  onClick,
+} = Astro.props;
+
+// Determinar si es un enlace o botón
+const Tag = href ? 'a' : 'button';
+
+// Determinar clases
+const variantClasses = {
+  primary: 'btn-primary',
+  secondary: 'btn-secondary',
+  danger: 'btn-danger',
+  ghost: 'btn-ghost',
+  outline: 'btn-outline',
+};
+
+const sizeClasses = {
+  sm: 'btn-sm',
+  md: '',
+  lg: 'btn-lg',
+};
+
+const classes = [
+  'btn',
+  variantClasses[variant],
+  sizeClasses[size],
+  fullWidth ? 'btn-full' : '',
+  loading ? 'btn-loading' : '',
+  state ? `btn-${state}` : '',
+  className,
+].filter(Boolean).join(' ');
+
+const attrs = {
+  class: classes,
+  disabled: disabled || loading,
+  'aria-disabled': disabled || loading,
+  'aria-label': ariaLabel,
+  id,
+  ...(onClick && { onclick: onClick }),
+  ...(href ? { href: disabled ? undefined : href } : { type }),
+  ...(state && { 'data-state': state }),
+};
+---
+
+<Tag {...attrs}>
+  {!loading && <slot />}
+  {loading && (
+    <>
+      <span class="sr-only">Cargando...</span>
+      <slot name="loading-text">
+        <span class="loading-text">Cargando...</span>
+      </slot>
+    </>
+  )}
+</Tag>
+
+<style>
+  /* Estas clases complementan las del sistema global para este componente específico */
+  .btn {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn:active:not(:disabled) {
+    transform: translateY(1px);
+  }
+
+  .btn-full {
+    width: 100%;
+  }
+
+  .btn-outline {
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+  }
+
+  .btn-outline:hover:not(:disabled) {
+    background: var(--background-tertiary);
+    border-color: var(--text-secondary);
+  }
+
+  .loading-text {
+    visibility: hidden;
+  }
+
+  /* Efecto de ripple para interacción */
+  .btn::after {
+    content: '';
+    display: block;
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    background-image: radial-gradient(circle, #fff 10%, transparent 10.01%);
+    background-repeat: no-repeat;
+    background-position: 50%;
+    transform: scale(10, 10);
+    opacity: 0;
+    transition: transform 0.3s, opacity 0.8s;
+  }
+
+  .btn:active::after {
+    transform: scale(0, 0);
+    opacity: 0.3;
+    transition: 0s;
+  }
+
+  /* Mejora en la animación de carga */
+  @keyframes spin {
+    to {
+      transform: translate(-50%, -50%) rotate(360deg);
+    }
+  }
+</style> 

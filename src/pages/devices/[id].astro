@@ -1,0 +1,214 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import DashboardHeader from "../../components/DashboardHeader.astro";
+import { deviceService } from "../../lib/deviceService";
+import { loanService } from "../../lib/loanService";
+import QRCodeGenerator from "../../components/QRCodeGenerator.astro";
+
+const { id } = Astro.params;
+if (!id) {
+  return Astro.redirect("/devices");
+}
+const device = await deviceService.getDeviceById(id);
+if (!device) {
+  return Astro.redirect("/devices");
+}
+const loanHistory = await loanService.getLoanHistory(id);
+---
+
+<Layout title={`Detalles - ${device.name}`}>
+  <DashboardHeader title={device.name} />
+  <div class="device-details">
+    <div class="details-grid">
+      <div class="detail-card">
+        <h2>Información del Dispositivo</h2>
+        <div class="info-grid">
+          <div class="info-item">
+            <span class="label">Categoría</span>
+            <span class="value">{device.category}</span>
+          </div>
+          <div class="info-item">
+            <span class="label">Ubicación</span>
+            <span class="value">{device.location}</span>
+          </div>
+          <div class="info-item">
+            <span class="label">Estado</span>
+            <span class={`status-badge ${device.status}`}>{device.status}</span>
+          </div>
+          {device.notes && (
+            <div class="info-item full-width">
+              <span class="label">Notas</span>
+              <span class="value">{device.notes}</span>
+            </div>
+          )}
+        </div>
+      </div>
+      <div class="detail-card">
+        <h2>Código QR</h2>
+        <div class="qr-container">
+          <QRCodeGenerator deviceId={device.id} />
+        </div>
+      </div>
+    </div>
+    <div class="detail-card">
+      <h2>Historial de Préstamos</h2>
+      <div class="history-list">
+        {loanHistory.map((loan) => (
+          <div class="history-item">
+            <div class="loan-info">
+              <div class="date-range">
+                <span class="loan-date">Prestado: {new Date(loan.loanDate).toLocaleDateString("es", { day: "2-digit", month: "short", year: "numeric" })}</span>
+                {loan.returnDate && (
+                  <span class="return-date">Devuelto: {new Date(loan.returnDate).toLocaleDateString("es", { day: "2-digit", month: "short", year: "numeric" })}</span>
+                )}
+              </div>
+            </div>
+            {loan.notes && <p class="loan-notes">{loan.notes}</p>}
+            {loan.condition && (<p class="loan-condition">Condición al devolver: {loan.condition}</p>)}
+          </div>
+        ))}
+        {loanHistory.length === 0 && (
+          <div class="empty-history"><p>Este dispositivo no tiene historial de préstamos</p></div>
+        )}
+      </div>
+    </div>
+  </div>
+</Layout>
+
+<style>
+:root {
+  --background-primary: #181a1b;
+  --background-secondary: #232526;
+  --background-tertiary: #23272e;
+  --text-primary: #f3f4f6;
+  --text-secondary: #b0b3b8;
+  --border-color: #2d2f31;
+  --card-radius: 18px;
+  --shadow: 0 2px 16px 0 rgba(0,0,0,0.25);
+  --font-main: 'Inter', 'SF Pro Display', 'Segoe UI', Arial, sans-serif;
+}
+body, html {
+  min-height: 100vh;
+  font-family: var(--font-main);
+  background: var(--background-primary);
+  color: var(--text-primary);
+  letter-spacing: 0.01em;
+}
+.device-details {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  width: 100%;
+  max-width: 1200px;
+  margin: 2rem auto 0 auto;
+}
+.details-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 2rem;
+}
+.detail-card {
+  background: var(--background-secondary);
+  border-radius: var(--card-radius);
+  box-shadow: var(--shadow);
+  padding: 2rem 1.5rem 1.5rem 1.5rem;
+}
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+}
+.info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.info-item.full-width {
+  grid-column: 1 / -1;
+}
+.label {
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  font-weight: 700;
+}
+.value {
+  font-size: 1.1rem;
+  color: var(--text-primary);
+  font-weight: 700;
+}
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  background: #232f3e;
+  color: #f3f4f6;
+  border: 1px solid #2d2f31;
+}
+.status-badge.available {
+  background: #14532d;
+  color: #22c55e;
+  border: 1px solid #22c55e;
+}
+.status-badge.on_loan {
+  background: #7f1d1d;
+  color: #ef4444;
+  border: 1px solid #ef4444;
+}
+.status-badge.maintenance {
+  background: #78350f;
+  color: #fbbf24;
+  border: 1px solid #fbbf24;
+}
+.qr-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 1rem;
+}
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.history-item {
+  background: var(--background-tertiary);
+  border-radius: 1em;
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+.loan-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 0.5rem;
+}
+.date-range {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.25rem;
+  font-size: 0.95rem;
+  color: #888;
+  font-weight: 600;
+}
+.loan-notes, .loan-condition {
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  margin: 0.5rem 0;
+}
+.empty-history {
+  text-align: center;
+  padding: 2rem;
+  color: #888;
+  font-style: italic;
+}
+@media (max-width: 900px) {
+  .details-grid {
+    grid-template-columns: 1fr;
+    gap: 1.2rem;
+  }
+}
+</style>

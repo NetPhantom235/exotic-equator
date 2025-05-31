@@ -1,0 +1,578 @@
+---
+import Button from "./ui/Button.astro";
+import Card from "./ui/Card.astro";
+import Badge from "./ui/Badge.astro";
+
+interface Props {
+  title?: string;
+  subtitle?: string;
+  onScanSuccess?: string;
+}
+
+const {
+  title = "Escanear Dispositivo",
+  subtitle = "Coloca el código QR del dispositivo frente a la cámara",
+  onScanSuccess,
+} = Astro.props;
+---
+
+<Card variant="elevated" class="qr-scanner-card">
+  <div class="scanner-header">
+    <h3 class="scanner-title">{title}</h3>
+    <p class="scanner-subtitle">{subtitle}</p>
+  </div>
+
+  <div class="scanner-container">
+    <div class="scanner-viewport" id="scannerViewport">
+      <video id="qr-video" playsinline></video>
+      <div class="scanner-overlay">
+        <div class="scanner-target"></div>
+      </div>
+      <div id="scan-region-highlight" hidden></div>
+    </div>
+
+    <div class="scanner-result" id="scannerResult" style="display: none;">
+      <div class="result-header">
+        <Badge text="Dispositivo Encontrado" variant="success" />
+      </div>
+      <div class="device-info">
+        <h4 class="device-name">Cargando...</h4>
+        <p class="device-details">Obteniendo información...</p>
+      </div>
+    </div>
+
+    <div class="scanner-error" id="scannerError" style="display: none;">
+      <div class="error-header">
+        <Badge text="Error" variant="danger" />
+      </div>
+      <p class="error-message">No se pudo acceder a la cámara</p>
+      <ul class="error-details">
+        <li>Asegúrate de que tu dispositivo tiene una cámara</li>
+        <li>Permite el acceso a la cámara cuando se solicite</li>
+        <li>Verifica que ninguna otra aplicación esté usando la cámara</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="scanner-actions">
+    <button class="scanner-btn" id="toggleCamera" type="button">
+      <span class="camera-icon"></span>
+      <span id="cameraButtonText">Activar Cámara</span>
+    </button>
+
+    <button
+      class="scanner-btn"
+      id="switchCamera"
+      type="button"
+      style="display: none;"
+    >
+      <span class="switch-icon"></span>
+      Cambiar Cámara
+    </button>
+  </div>
+</Card>
+
+<style>
+  .qr-scanner-card {
+    max-width: 600px;
+    margin: 0 auto;
+  }
+
+  .scanner-header {
+    text-align: center;
+    margin-bottom: var(--space-4);
+  }
+
+  .scanner-title {
+    font-size: var(--text-xl);
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-primary);
+    margin: 0;
+  }
+
+  .scanner-subtitle {
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    margin-top: var(--space-2);
+  }
+
+  .scanner-container {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 4/3;
+    margin-bottom: var(--space-4);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+  }
+
+  .scanner-viewport {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    background-color: var(--background-tertiary);
+  }
+
+  #qr-video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .scanner-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.3);
+  }
+
+  .scanner-target {
+    width: 65%;
+    height: 65%;
+    border: 2px solid rgba(255, 255, 255, 0.8);
+    border-radius: var(--radius-lg);
+    position: relative;
+  }
+
+  .scanner-target::before,
+  .scanner-target::after {
+    content: "";
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--accent);
+  }
+
+  .scanner-target::before {
+    top: -2px;
+    left: -2px;
+    border-right: none;
+    border-bottom: none;
+  }
+
+  .scanner-target::after {
+    bottom: -2px;
+    right: -2px;
+    border-left: none;
+    border-top: none;
+  }
+
+  .scanner-result,
+  .scanner-error {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--background-elevated);
+    padding: var(--space-4);
+    display: none;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+
+  .result-header,
+  .error-header {
+    display: flex;
+    justify-content: center;
+  }
+
+  .device-info {
+    text-align: center;
+  }
+
+  .device-name {
+    font-size: var(--text-lg);
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-primary);
+    margin: 0;
+  }
+
+  .device-details {
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    margin-top: var(--space-2);
+  }
+
+  .error-message {
+    font-size: var(--text-base);
+    color: var(--state-error-color);
+    text-align: center;
+    margin: 0;
+  }
+
+  .error-details {
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    margin: 0;
+    padding-left: var(--space-4);
+  }
+
+  .error-details li {
+    margin: var(--space-2) 0;
+  }
+
+  .scanner-actions {
+    display: flex;
+    justify-content: center;
+    gap: var(--space-4);
+    margin-top: 1rem;
+  }
+
+  .scanner-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.25rem;
+    background-color: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+  }
+
+  .scanner-btn:hover {
+    background-color: var(--accent-dark, #0056b3);
+  }
+
+  .scanner-btn:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  .camera-icon,
+  .switch-icon {
+    width: 1.25rem;
+    height: 1.25rem;
+    background-color: currentColor;
+    mask-size: contain;
+    mask-repeat: no-repeat;
+    mask-position: center;
+    display: inline-block;
+  }
+
+  .camera-icon {
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='currentColor'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z'/%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M15 13a3 3 0 11-6 0 3 3 0 016 0z'/%3E%3C/svg%3E");
+  }
+
+  .switch-icon {
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='currentColor'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4'/%3E%3C/svg%3E");
+  }
+</style>
+
+<script>
+  // @ts-nocheck
+  import QrScanner from "qr-scanner";
+
+  // Variables para el escáner
+  let qrScanner = null;
+  let currentCamera = "environment";
+  let scanning = false;
+
+  // Función para inicializar los elementos del DOM
+  function initializeDOM() {
+    // Elementos del DOM
+    const video = document.getElementById("qr-video");
+    const toggleButton = document.getElementById("toggleCamera");
+    const switchButton = document.getElementById("switchCamera");
+    const buttonText = document.getElementById("cameraButtonText");
+    const resultDiv = document.getElementById("scannerResult");
+    const errorDiv = document.getElementById("scannerError");
+
+    // Si no encontramos elementos esenciales, salir
+    if (!video || !toggleButton) {
+      console.error("Elementos esenciales del escáner no encontrados");
+      return null;
+    }
+
+    return {
+      video,
+      toggleButton,
+      switchButton,
+      buttonText,
+      resultDiv,
+      errorDiv,
+    };
+  }
+
+  // Función para verificar el permiso de la cámara
+  async function checkCameraPermission() {
+    try {
+      if (navigator.permissions && navigator.permissions.query) {
+        const result = await navigator.permissions.query({ name: "camera" });
+        return result.state;
+      }
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      stream.getTracks().forEach((track) => track.stop());
+      return "granted";
+    } catch {
+      return "denied";
+    }
+  }
+
+  // Función para mostrar error
+  function showError(message, elements) {
+    if (!elements || !elements.errorDiv) return;
+
+    const errorMessage = elements.errorDiv.querySelector(".error-message");
+    if (errorMessage) {
+      errorMessage.textContent = message;
+    }
+    elements.errorDiv.style.display = "flex";
+  }
+
+  // Función para mostrar resultado
+  function showResult(deviceName, details, elements) {
+    if (!elements || !elements.resultDiv) return;
+
+    const nameElement = elements.resultDiv.querySelector(".device-name");
+    const detailsElement = elements.resultDiv.querySelector(".device-details");
+
+    if (nameElement) nameElement.textContent = deviceName;
+    if (detailsElement) detailsElement.textContent = details;
+
+    elements.resultDiv.style.display = "flex";
+  }
+
+  // Función para agregar dispositivo al carrito
+  async function addDeviceToCart(device, elements) {
+    let cartItems = document.querySelector("#deviceCart .cart-items");
+    let cartEmpty = document.querySelector("#deviceCart .cart-empty");
+
+    // Si no estamos en la página de préstamos, redirigir a ella
+    if (!cartItems) {
+      // Guardar dispositivo en localStorage para recuperarlo
+      localStorage.setItem("scannedDevice", JSON.stringify(device));
+      window.location.href = `/loans/new?deviceId=${device.id}`;
+      return;
+    }
+
+    // Verificar si el dispositivo ya está en el carrito
+    const existingItem = cartItems.querySelector(
+      `[data-device-id="${device.id}"]`
+    );
+    if (existingItem) {
+      showError("Este dispositivo ya está en el carrito", elements);
+      return;
+    }
+
+    // Crear nuevo elemento del carrito
+    const cartItem = document.createElement("div");
+    cartItem.className = "cart-item";
+    cartItem.dataset.deviceId = device.id;
+    cartItem.innerHTML = `
+      <div class="device-info">
+        <h4>${device.name}</h4>
+        <p>Ubicación: ${device.location}</p>
+      </div>
+      <button class="remove-btn" data-device-id="${device.id}">
+        Eliminar
+      </button>
+    `;
+
+    // Agregar al carrito
+    cartItems.appendChild(cartItem);
+
+    // Actualizar visibilidad del mensaje de carrito vacío
+    if (cartEmpty) {
+      cartEmpty.style.display = "none";
+    }
+
+    // Habilitar el botón de submit si estaba deshabilitado
+    const submitBtn = document.querySelector('#loanForm button[type="submit"]');
+    if (submitBtn) {
+      submitBtn.disabled = false;
+    }
+
+    // Agregar evento para eliminar del carrito
+    const removeBtn = cartItem.querySelector(".remove-btn");
+    removeBtn?.addEventListener("click", function () {
+      cartItem.remove();
+      const hasItems = cartItems.children.length > 0;
+      if (cartEmpty) {
+        cartEmpty.style.display = hasItems ? "none" : "block";
+      }
+      if (submitBtn) {
+        submitBtn.disabled = !hasItems;
+      }
+    });
+  }
+
+  // Función para procesar el código QR escaneado
+  async function handleScan(result, elements) {
+    try {
+      const response = await fetch(
+        `/api/devices/qr/${encodeURIComponent(result)}`
+      );
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Error al procesar el código QR");
+      }
+
+      const device = data.device;
+      const deviceName = device.name;
+      const deviceStatus = device.status;
+      const currentLoan = device.loans?.[0];
+
+      // Mostrar información del dispositivo
+      let details = `Estado: ${deviceStatus}`;
+      if (currentLoan) {
+        details += `\nPréstamo activo con: ${currentLoan.supervisor.name}`;
+      }
+
+      showResult(deviceName, details, elements);
+
+      // Esperar un momento para que el usuario pueda ver la información
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+
+      // Determinar la acción basada en el estado del dispositivo
+      if (currentLoan) {
+        showError("Este dispositivo ya está prestado", elements);
+      } else if (deviceStatus !== "available") {
+        showError(
+          `El dispositivo no está disponible. Estado actual: ${deviceStatus}`,
+          elements
+        );
+      } else {
+        // Agregar el dispositivo al carrito
+        await addDeviceToCart(device, elements);
+
+        // Ocultar el resultado después de agregar al carrito
+        if (elements.resultDiv) {
+          elements.resultDiv.style.display = "none";
+        }
+      }
+    } catch (error) {
+      showError(
+        error instanceof Error
+          ? error.message
+          : "Error al procesar el código QR",
+        elements
+      );
+    }
+  }
+
+  // Función para iniciar el scanner
+  async function startScanner(elements) {
+    if (!elements || !elements.video) {
+      console.error(
+        "No se pueden encontrar los elementos necesarios para iniciar el escáner"
+      );
+      return;
+    }
+
+    try {
+      if (!qrScanner) {
+        console.log("Inicializando nuevo escáner QR");
+        qrScanner = new QrScanner(
+          elements.video,
+          (result) => handleScan(result.data, elements),
+          {
+            preferredCamera: currentCamera,
+            highlightScanRegion: true,
+            highlightCodeOutline: true,
+          }
+        );
+      }
+
+      console.log("Iniciando escáner...");
+      await qrScanner.start();
+      scanning = true;
+
+      if (elements.buttonText)
+        elements.buttonText.textContent = "Desactivar Cámara";
+      if (elements.switchButton) elements.switchButton.style.display = "block";
+
+      // Ocultar mensajes de error/resultado al iniciar
+      if (elements.errorDiv) elements.errorDiv.style.display = "none";
+      if (elements.resultDiv) elements.resultDiv.style.display = "none";
+
+      console.log("Escáner iniciado correctamente");
+    } catch (error) {
+      console.error("Error al iniciar el escáner:", error);
+      showError("No se pudo iniciar la cámara", elements);
+    }
+  }
+
+  // Función para detener el scanner
+  function stopScanner(elements) {
+    if (qrScanner) {
+      console.log("Deteniendo escáner...");
+      qrScanner.stop();
+      scanning = false;
+      if (elements.buttonText)
+        elements.buttonText.textContent = "Activar Cámara";
+      if (elements.switchButton) elements.switchButton.style.display = "none";
+      console.log("Escáner detenido");
+    }
+  }
+
+  // Función principal para inicializar todo
+  function initializeScanner() {
+    console.log("Inicializando componente del escáner QR");
+    const elements = initializeDOM();
+    if (!elements) return;
+
+    // Manejador para activar/desactivar la cámara
+    elements.toggleButton.addEventListener("click", () => {
+      console.log(
+        "Botón de cámara presionado, estado actual:",
+        scanning ? "activo" : "inactivo"
+      );
+      if (scanning) {
+        stopScanner(elements);
+      } else {
+        startScanner(elements);
+      }
+    });
+
+    // Manejador para cambiar de cámara
+    if (elements.switchButton) {
+      elements.switchButton.addEventListener("click", async () => {
+        if (qrScanner) {
+          currentCamera =
+            currentCamera === "environment" ? "user" : "environment";
+          await qrScanner.setCamera(currentCamera);
+        }
+      });
+    }
+
+    // Verificar permisos de la cámara
+    checkCameraPermission().then((permission) => {
+      if (permission === "denied") {
+        showError("Acceso a la cámara denegado", elements);
+      }
+    });
+
+    // Iniciar automáticamente en ciertas páginas
+    if (window.location.pathname.includes("/loans")) {
+      console.log(
+        "Estamos en la página de préstamos, iniciando escáner automáticamente"
+      );
+      startScanner(elements);
+    }
+
+    // Limpieza al desmontar
+    const cleanupHandler = () => {
+      stopScanner(elements);
+      document.removeEventListener("astro:before-swap", cleanupHandler);
+    };
+    document.addEventListener("astro:before-swap", cleanupHandler);
+  }
+
+  // Inicializar cuando el DOM esté listo
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initializeScanner);
+  } else {
+    initializeScanner();
+  }
+</script>
+

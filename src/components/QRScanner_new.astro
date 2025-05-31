@@ -1,0 +1,575 @@
+---
+import { deviceService } from "../lib/deviceService";
+import type { DeviceWithRelations } from "../lib/deviceTypes";
+
+interface Props {
+  title?: string;
+  subtitle?: string;
+}
+
+const {
+  title = "Escanear Código QR",
+  subtitle = "Coloca el código QR frente a la cámara",
+} = Astro.props;
+---
+
+<div class="scanner-container">
+  <div class="scanner-header">
+    <h3 class="scanner-title">{title}</h3>
+    <p class="scanner-info">{subtitle}</p>
+  </div>
+  <div class="scanner-wrapper">
+    <div class="scanner-viewport" id="scannerViewport">
+      <video id="qr-video"></video>
+      <div class="scanner-overlay">
+        <div class="scanner-target"></div>
+      </div>
+    </div>
+    <div id="scanner-error" class="scanner-error" style="display: none;">
+      <p>No se pudo acceder a la cámara. Por favor:</p>
+      <ul>
+        <li>Asegúrate de que tu dispositivo tiene una cámara</li>
+        <li>Permite el acceso a la cámara cuando se solicite</li>
+        <li>En móviles, usa el navegador Chrome o Safari</li>
+      </ul>
+    </div>
+  </div>
+  <div class="scanner-actions">
+    <button class="button button-secondary" id="toggleCamera">
+      <span class="icon icon-camera"></span>
+      <span id="cameraButtonText">Activar Cámara</span>
+    </button>
+    <button
+      class="button button-secondary"
+      id="switchCamera"
+      style="display: none;"
+    >
+      <span class="icon icon-switch"></span>
+      Cambiar Cámara
+    </button>
+  </div>
+</div>
+
+<style>
+  .scanner-container {
+    background-color: white;
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    max-width: 600px;
+    margin: 0 auto;
+  }
+
+  .scanner-header {
+    margin-bottom: 1.5rem;
+    text-align: center;
+  }
+
+  .scanner-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #2d3748;
+    margin: 0 0 0.5rem 0;
+  }
+
+  .scanner-info {
+    font-size: 0.875rem;
+    color: #4a5568;
+    margin: 0.25rem 0;
+  }
+
+  .scanner-wrapper {
+    position: relative;
+    width: 100%;
+    max-width: 500px;
+    margin: 0 auto 1.5rem;
+    aspect-ratio: 4/3;
+  }
+
+  .scanner-viewport {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    background-color: #000;
+    border-radius: 0.375rem;
+    overflow: hidden;
+  }
+
+  #qr-video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .scanner-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.1);
+  }
+
+  .scanner-target {
+    width: 65%;
+    height: 65%;
+    border: 2px solid #fff;
+    border-radius: 1rem;
+    box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.3);
+    position: relative;
+  }
+
+  .scanner-target::before,
+  .scanner-target::after {
+    content: "";
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    border: 2px solid #2563eb;
+  }
+
+  .scanner-target::before {
+    top: -2px;
+    left: -2px;
+    border-right: none;
+    border-bottom: none;
+  }
+
+  .scanner-target::after {
+    bottom: -2px;
+    right: -2px;
+    border-left: none;
+    border-top: none;
+  }
+
+  .scanner-error {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(255, 255, 255, 0.9);
+    padding: 1rem;
+    border-radius: 0.5rem;
+    text-align: left;
+    font-size: 0.875rem;
+    color: #ef4444;
+    width: 90%;
+  }
+
+  .scanner-error.scanner-success {
+    color: #047857;
+    background: rgba(209, 250, 229, 0.95);
+  }
+
+  .scanner-error ul {
+    margin: 0.5rem 0 0 1.5rem;
+    padding: 0;
+  }
+
+  .scanner-error li {
+    margin: 0.25rem 0;
+  }
+
+  .scanner-actions {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+  }
+
+  .button {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s;
+  }
+
+  .button-secondary {
+    background-color: #edf2f7;
+    color: #4a5568;
+  }
+
+  .button-secondary:hover {
+    background-color: #e2e8f0;
+  }
+
+  .icon {
+    width: 1.25rem;
+    height: 1.25rem;
+    background-color: currentColor;
+    mask-size: contain;
+    mask-repeat: no-repeat;
+    mask-position: center;
+  }
+
+  .icon-camera {
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='currentColor'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z'/%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M15 13a3 3 0 11-6 0 3 3 0 016 0z'/%3E%3C/svg%3E");
+  }
+
+  .icon-switch {
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='currentColor'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4'/%3E%3C/svg%3E");
+  }
+</style>
+
+<script>
+  import QrScanner from "qr-scanner";
+
+  let qrScanner: QrScanner | null = null;
+  let currentCamera = "environment";
+  let lastError: Error | null = null;
+  let scanning = false;
+
+  // Función para buscar un dispositivo por código QR
+  const findDevice = async (searchTerm: string) => {
+    try {
+      const response = await fetch(
+        `/api/devices/search?qr=${encodeURIComponent(searchTerm)}`
+      );
+      if (!response.ok) {
+        throw new Error("Error al buscar dispositivo");
+      }
+      return await response.json();
+    } catch (error) {
+      console.error("Error buscando dispositivo:", error);
+      return null;
+    }
+  };
+
+  // Función para mostrar un mensaje
+  const showMessage = (
+    message: string,
+    type: "error" | "success" = "error"
+  ) => {
+    const errorDisplay = document.getElementById(
+      "scanner-error"
+    ) as HTMLDivElement;
+    errorDisplay.innerHTML = message;
+    errorDisplay.style.display = "block";
+    errorDisplay.className = `scanner-error scanner-${type}`;
+
+    // Ocultar mensaje de éxito después de un tiempo
+    if (type === "success") {
+      setTimeout(() => {
+        errorDisplay.style.display = "none";
+      }, 2000);
+    }
+  };
+
+  // Función para procesar el código QR escaneado
+  const handleQrResult = async (result: string) => {
+    if (scanning) return; // Evitar escaneos duplicados
+    scanning = true;
+
+    try {
+      // Buscar el dispositivo
+      const device = await findDevice(result);
+
+      if (!device) {
+        showMessage(`
+          <p>Dispositivo no encontrado o no disponible. Por favor:</p>
+          <ul>
+            <li>Verifica que el código QR corresponde a un dispositivo registrado</li>
+            <li>Asegúrate de que el dispositivo está disponible para préstamo</li>
+            <li>Si el problema persiste, contacta al administrador</li>
+          </ul>
+        `);
+        return;
+      }
+
+      // Si el dispositivo no está disponible
+      if (device.status !== "available") {
+        showMessage(`
+          <p>El dispositivo "${device.name}" no está disponible.</p>
+          <p>Estado actual: ${device.status}</p>
+          <p>Por favor selecciona otro dispositivo.</p>
+        `);
+        return;
+      }
+
+      // Cerrar el modal del escáner primero
+      const closeEvent = new CustomEvent("closeScanner");
+      document.dispatchEvent(closeEvent);
+
+      // Enviar datos al carrito
+      const cartEvent = new CustomEvent("addToCart", {
+        detail: {
+          device: {
+            id: device.id,
+            name: device.name,
+            location: device.location,
+            status: device.status,
+            qr: result,
+          },
+          available: device.status === "available",
+        },
+      });
+      document.dispatchEvent(cartEvent);
+
+      // Feedback visual
+      showMessage(
+        `
+        <p>✅ Dispositivo agregado</p>
+        <p>${device.name}</p>
+        <small>Estado: ${device.status}</small>
+      `,
+        "success"
+      );
+
+      // Resetear escáner después de 1.5 segundos
+      setTimeout(() => {
+        if (qrScanner) {
+          qrScanner.stop();
+          const buttonText = document.getElementById("cameraButtonText");
+          if (buttonText) {
+            buttonText.textContent = "Activar Cámara";
+          }
+          scanning = false;
+        }
+const errorElement = document.getElementById("scanner-error");
+if (errorElement) {
+  errorElement.style.display = "none";
+}
+      }, 1500);
+    } catch (error) {
+      console.error("Error procesando código QR:", error);
+      showMessage(
+        "Error al procesar el código QR. Por favor intenta nuevamente."
+      );
+    } finally {
+      scanning = false;
+    }
+  };
+
+  // Función para verificar permisos de cámara
+  const checkCameraPermission = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      stream.getTracks().forEach((track) => track.stop());
+      return "granted";
+    } catch (error) {
+      if (error instanceof DOMException) {
+        if (error.name === "NotAllowedError") return "denied";
+        if (error.name === "NotFoundError") return "unavailable";
+      }
+      return "prompt";
+    }
+  };
+
+  // Función para solicitar acceso a la cámara
+  const requestCameraAccess = async (preferredCamera = currentCamera) => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: preferredCamera,
+        },
+      });
+      stream.getTracks().forEach((track) => track.stop());
+      return true;
+    } catch (error) {
+      console.error("Error al solicitar acceso a la cámara:", error);
+      lastError = error as Error;
+      return false;
+    }
+  };
+
+  document.addEventListener("DOMContentLoaded", async () => {
+    const video = document.getElementById("qr-video") as HTMLVideoElement;
+    const toggleButton = document.getElementById(
+      "toggleCamera"
+    ) as HTMLButtonElement;
+    const switchButton = document.getElementById(
+      "switchCamera"
+    ) as HTMLButtonElement;
+    const buttonText = document.getElementById(
+      "cameraButtonText"
+    ) as HTMLSpanElement;
+
+    // Verificar soporte del navegador
+    if (
+      !navigator.mediaDevices ||
+      !navigator.mediaDevices.getUserMedia ||
+      !window.isSecureContext
+    ) {
+      showMessage(`
+        <p>Tu navegador no es compatible.</p>
+        <ul>
+          <li>Usa un navegador moderno como Chrome, Firefox o Safari</li>
+          <li>Actualiza tu navegador a la última versión</li>
+          <li>En móviles, usa Chrome o Safari</li>
+<li>Asegúrate de que estás usando HTTPS si estás en un sitio web público</li>
+        </ul>
+      `);
+      toggleButton.disabled = true;
+      return;
+    }
+
+    // Verificar permiso y cámaras disponibles
+    const [permission, cameras] = await Promise.all([
+      checkCameraPermission(),
+      QrScanner.listCameras(true).catch(() => []),
+    ]);
+
+    if (permission === "denied") {
+      showMessage(`
+        <p>Acceso a la cámara bloqueado.</p>
+        <ul>
+          <li>Haz clic en el ícono de la cámara en la barra de direcciones</li>
+          <li>Selecciona "Permitir" para acceder a la cámara</li>
+          <li>Recarga la página después de permitir el acceso</li>
+        </ul>
+      `);
+      toggleButton.disabled = true;
+      return;
+    }
+
+    if (cameras.length === 0) {
+      showMessage(`
+        <p>No se detectó ninguna cámara.</p>
+        <ul>
+          <li>Asegúrate de que tu dispositivo tiene una cámara</li>
+          <li>Verifica que no hay otras aplicaciones usando la cámara</li>
+          <li>Conecta una cámara externa si es necesario</li>
+        </ul>
+      `);
+      toggleButton.disabled = true;
+      return;
+    }
+
+    // Configurar botón de cambio de cámara
+    if (cameras.length > 1) {
+      switchButton.style.display = "flex";
+      // Preferir cámara trasera en móviles
+      const backCamera = cameras.find(
+        (camera) =>
+          camera.label.toLowerCase().includes("back") ||
+          camera.label.toLowerCase().includes("trasera")
+      );
+      if (backCamera) {
+        currentCamera = "environment";
+      }
+    }
+
+    const createScanner = () => {
+      if (qrScanner) {
+        qrScanner.destroy();
+      }
+
+      qrScanner = new QrScanner(
+        video,
+        async (result) => {
+          await handleQrResult(result.data);
+        },
+        {
+          returnDetailedScanResult: true,
+          highlightScanRegion: true,
+          highlightCodeOutline: true,
+          maxScansPerSecond: 5,
+          preferredCamera: currentCamera,
+          calculateScanRegion: (video) => {
+            const smallestDimension = Math.min(
+              video.videoWidth,
+              video.videoHeight
+            );
+            const scanRegionSize = Math.round(smallestDimension * 0.6);
+
+            return {
+              x: Math.round((video.videoWidth - scanRegionSize) / 2),
+              y: Math.round((video.videoHeight - scanRegionSize) / 2),
+              width: scanRegionSize,
+              height: scanRegionSize,
+            };
+          },
+        }
+      );
+
+      // Optimizar el escáner
+      qrScanner.setInversionMode("original");
+      qrScanner.setGrayscaleWeights(256, 256, 256);
+    };
+
+    toggleButton.addEventListener("click", async () => {
+      try {
+        if (!qrScanner) {
+          const hasAccess = await requestCameraAccess();
+          if (!hasAccess) {
+            showMessage(`
+              <p>No se pudo acceder a la cámara.</p>
+              <ul>
+                <li>Permite el acceso cuando el navegador lo solicite</li>
+                <li>Si bloqueaste el acceso, haz clic en el ícono de la cámara</li>
+                <li>Recarga la página después de permitir el acceso</li>
+              </ul>
+            `);
+            return;
+          }
+          createScanner();
+        }
+
+        const isActive = video.srcObject !== null;
+        if (isActive) {
+          await qrScanner?.stop();
+          buttonText.textContent = "Activar Cámara";
+          scanning = false;
+        } else {
+          await qrScanner?.start();
+          buttonText.textContent = "Detener Cámara";
+          scanning = true;
+          showMessage("", "success"); // Limpiar mensajes de error
+        }
+      } catch (error) {
+        console.error("Error al acceder a la cámara:", error);
+
+        if (error instanceof DOMException) {
+          if (error.name === "NotAllowedError") {
+            showMessage(`
+              <p>Permiso denegado para acceder a la cámara.</p>
+              <ul>
+                <li>Haz clic en el ícono de la cámara en la barra de direcciones</li>
+                <li>Selecciona "Permitir" para acceder a la cámara</li>
+                <li>Recarga la página después de permitir el acceso</li>
+              </ul>
+            `);
+          } else if (error.name === "NotFoundError") {
+            showMessage(`
+              <p>No se encontró ninguna cámara.</p>
+              <ul>
+                <li>Asegúrate de que tu dispositivo tiene una cámara funcional</li>
+                <li>Verifica que no hay otras aplicaciones usando la cámara</li>
+              </ul>
+            `);
+          }
+        }
+      }
+    });
+
+    switchButton.addEventListener("click", async () => {
+      try {
+        currentCamera =
+          currentCamera === "environment" ? "user" : "environment";
+
+        if (scanning) {
+          await qrScanner?.stop();
+          createScanner();
+          await qrScanner?.start();
+        }
+      } catch (error) {
+        console.error("Error al cambiar de cámara:", error);
+        showMessage(`
+          <p>Error al cambiar de cámara.</p>
+          <ul>
+            <li>Verifica que ambas cámaras están funcionando</li>
+            <li>Intenta recargar la página</li>
+          </ul>
+        `);
+      }
+    });
+  });
+</script>

@@ -1,0 +1,212 @@
+---
+import Button from './Button.astro';
+
+interface Props {
+  id: string;
+  method?: 'GET' | 'POST';
+  action?: string;
+  class?: string;
+}
+
+const {
+  id,
+  method = 'POST',
+  action = '#',
+  class: className = '',
+} = Astro.props;
+---
+
+<form
+  id={id}
+  method={method}
+  action={action}
+  class:list={['form', className]}
+  novalidate
+>
+  <slot />
+</form>
+
+<style>
+  .form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-lg);
+    width: 100%;
+    max-width: 500px;
+    margin: 0 auto;
+  }
+
+  /* Estilos para grupos de campos */
+  :global(.form-group) {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+  }
+
+  /* Estilos para etiquetas */
+  :global(.form-label) {
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+  }
+
+  /* Estilos para campos de entrada */
+  :global(.form-input) {
+    width: 100%;
+    padding: var(--spacing-sm) var(--spacing-md);
+    background-color: var(--color-surface);
+    border: 2px solid var(--color-border);
+    border-radius: var(--border-radius-md);
+    color: var(--color-text-primary);
+    font-size: var(--font-size-md);
+    transition: all var(--transition-fast);
+  }
+
+  :global(.form-input:hover) {
+    border-color: color-mix(in srgb, var(--color-border) 80%, white);
+  }
+
+  :global(.form-input:focus) {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary) 30%, transparent);
+  }
+
+  /* Estados de validación */
+  :global(.form-input:invalid:not(:placeholder-shown)) {
+    border-color: var(--color-error);
+  }
+
+  :global(.form-input:valid:not(:placeholder-shown)) {
+    border-color: var(--color-success);
+  }
+
+  /* Mensajes de error */
+  :global(.form-error) {
+    color: var(--color-error);
+    font-size: var(--font-size-sm);
+    margin-top: var(--spacing-xs);
+    display: none;
+  }
+
+  :global(.form-input:invalid:not(:placeholder-shown) + .form-error) {
+    display: block;
+    animation: slideIn var(--transition-fast) forwards;
+  }
+
+  /* Campos requeridos */
+  :global(.form-label[data-required]::after) {
+    content: '*';
+    color: var(--color-error);
+    margin-left: var(--spacing-xs);
+  }
+
+  /* Campos deshabilitados */
+  :global(.form-input:disabled) {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  /* Animaciones */
+  @keyframes slideIn {
+    from {
+      opacity: 0;
+      transform: translateY(-4px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+</style>
+
+<script>
+  class FormValidation {
+    form: HTMLFormElement | null = null;
+    
+    constructor(formId: string) {
+      const form = document.getElementById(formId) as HTMLFormElement;
+      if (!form) return;
+      
+      this.form = form;
+      this.setupValidation();
+    }
+
+    setupValidation() {
+      if (!this.form) return;
+      this.form.addEventListener('submit', this.handleSubmit.bind(this));
+      this.form.addEventListener('input', this.handleInput.bind(this));
+    }
+
+    handleSubmit(event: Event) {
+      event.preventDefault();
+      if (!this.form) return;
+      
+      if (!this.form.checkValidity()) {
+        this.showErrors();
+        return;
+      }
+
+      // Aquí puedes manejar el envío del formulario
+      console.log('Formulario válido, enviando...');
+    }
+
+    handleInput(event: Event) {
+      const target = event.target as HTMLInputElement;
+      if (!target) return;
+
+      this.validateField(target);
+    }
+
+    validateField(field: HTMLInputElement) {
+      const errorElement = field.nextElementSibling;
+      if (!errorElement?.classList.contains('form-error')) return;
+
+      if (field.validity.valid) {
+        errorElement.textContent = '';
+      } else {
+        errorElement.textContent = this.getErrorMessage(field);
+      }
+    }
+
+    showErrors() {
+      if (!this.form) return;
+      const fields = this.form.querySelectorAll('input, textarea, select');
+      fields.forEach(field => {
+        if (field instanceof HTMLInputElement) {
+          this.validateField(field);
+        }
+      });
+    }
+
+    getErrorMessage(field: HTMLInputElement): string {
+      const validity = field.validity;
+
+      if (validity.valueMissing) {
+        return 'Este campo es requerido';
+      }
+      if (validity.typeMismatch) {
+        return 'Por favor, ingresa un valor válido';
+      }
+      if (validity.tooShort) {
+        return `Debe tener al menos ${field.minLength} caracteres`;
+      }
+      if (validity.tooLong) {
+        return `Debe tener máximo ${field.maxLength} caracteres`;
+      }
+      if (validity.patternMismatch) {
+        return 'El formato ingresado no es válido';
+      }
+
+      return 'Este campo no es válido';
+    }
+  }
+
+  // Inicializar la validación para todos los formularios
+  document.addEventListener('DOMContentLoaded', () => {
+    const forms = document.querySelectorAll('form[id]');
+    forms.forEach(form => {
+      new FormValidation(form.id);
+    });
+  });
+</script> 

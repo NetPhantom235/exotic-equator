@@ -1,0 +1,193 @@
+---
+interface Props {
+  variant?: 'primary' | 'secondary' | 'outline' | 'text';
+  size?: 'sm' | 'md' | 'lg';
+  disabled?: boolean;
+  loading?: boolean;
+  fullWidth?: boolean;
+  type?: 'button' | 'submit' | 'reset';
+  href?: string;
+  class?: string;
+}
+
+const {
+  variant = 'primary',
+  size = 'md',
+  disabled = false,
+  loading = false,
+  fullWidth = false,
+  type = 'button',
+  href,
+  class: className = '',
+} = Astro.props;
+
+const Tag = href ? 'a' : 'button';
+
+const sizes = {
+  sm: 'text-sm px-3 py-1.5',
+  md: 'text-base px-4 py-2',
+  lg: 'text-lg px-6 py-3',
+};
+
+const variants = {
+  primary: 'bg-primary text-white hover:bg-primary-dark active:bg-primary-darker',
+  secondary: 'bg-surface text-white hover:bg-surface-light active:bg-surface-dark',
+  outline: 'border-2 border-primary text-primary hover:bg-primary hover:text-white',
+  text: 'text-primary hover:bg-primary/10',
+};
+---
+
+<Tag
+  class:list={[
+    'button',
+    `button-${variant}`,
+    `button-${size}`,
+    fullWidth && 'button-full',
+    disabled && 'button-disabled',
+    loading && 'button-loading',
+    className,
+  ]}
+  {...href ? { href, role: 'button' } : { type }}
+  disabled={disabled || loading}
+  aria-disabled={disabled || loading}
+>
+  {loading && (
+    <span class="button-spinner" aria-hidden="true"></span>
+  )}
+  <span class:list={['button-content', loading && 'invisible']}>
+    <slot />
+  </span>
+</Tag>
+
+<style>
+  .button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-sm);
+    border-radius: var(--border-radius-md);
+    font-weight: 500;
+    transition: all var(--transition-fast);
+    position: relative;
+    cursor: pointer;
+    text-decoration: none;
+  }
+
+  .button:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+
+  /* Variantes */
+  .button-primary {
+    background-color: var(--color-primary);
+    color: var(--color-text-primary);
+  }
+
+  .button-primary:hover {
+    filter: brightness(1.1);
+  }
+
+  .button-primary:active {
+    filter: brightness(0.9);
+  }
+
+  .button-secondary {
+    background-color: var(--color-surface);
+    color: var(--color-text-primary);
+  }
+
+  .button-secondary:hover {
+    background-color: color-mix(in srgb, var(--color-surface) 90%, white);
+  }
+
+  .button-secondary:active {
+    background-color: color-mix(in srgb, var(--color-surface) 90%, black);
+  }
+
+  .button-outline {
+    background-color: transparent;
+    border: 2px solid var(--color-primary);
+    color: var(--color-primary);
+  }
+
+  .button-outline:hover {
+    background-color: var(--color-primary);
+    color: var(--color-text-primary);
+  }
+
+  .button-text {
+    background-color: transparent;
+    color: var(--color-primary);
+    padding-left: var(--spacing-sm);
+    padding-right: var(--spacing-sm);
+  }
+
+  .button-text:hover {
+    background-color: color-mix(in srgb, var(--color-primary) 10%, transparent);
+  }
+
+  /* Tamaños */
+  .button-sm {
+    font-size: var(--font-size-sm);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    height: 32px;
+  }
+
+  .button-md {
+    font-size: var(--font-size-md);
+    padding: var(--spacing-sm) var(--spacing-md);
+    height: 40px;
+  }
+
+  .button-lg {
+    font-size: var(--font-size-lg);
+    padding: var(--spacing-md) var(--spacing-lg);
+    height: 48px;
+  }
+
+  /* Estados */
+  .button-full {
+    width: 100%;
+  }
+
+  .button-disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+
+  .button-loading {
+    cursor: wait;
+  }
+
+  .button-spinner {
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    border: 2px solid transparent;
+    border-radius: 50%;
+    border-top-color: currentColor;
+    animation: spin 0.8s linear infinite;
+  }
+
+  .invisible {
+    visibility: hidden;
+  }
+
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+
+  /* Efectos hover/active */
+  @media (hover: hover) {
+    .button:not(.button-disabled):hover {
+      transform: translateY(-1px);
+    }
+
+    .button:not(.button-disabled):active {
+      transform: translateY(0);
+    }
+  }
+</style> 

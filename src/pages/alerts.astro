@@ -1,0 +1,659 @@
+---
+import Layout from "../layouts/Layout.astro";
+import DashboardHeader from "../components/DashboardHeader.astro";
+import { PrismaClient } from "@prisma/client";
+
+const prisma = new PrismaClient();
+
+// Obtener todas las alertas
+const alerts = await prisma.alert.findMany({
+  orderBy: {
+    createdAt: 'desc'
+  }
+});
+
+// Contar alertas por tipo y estado
+const stats = {
+  total: alerts.length,
+  active: alerts.filter(alert => alert.status === 'active').length,
+  resolved: alerts.filter(alert => alert.status === 'resolved').length,
+  danger: alerts.filter(alert => alert.type === 'DANGER').length,
+  warning: alerts.filter(alert => alert.type === 'WARNING').length,
+  info: alerts.filter(alert => alert.type === 'INFO').length,
+  success: alerts.filter(alert => alert.type === 'SUCCESS').length
+};
+
+// Formatear fecha
+function formatDate(date) {
+  return new Date(date).toLocaleString('es-ES', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+}
+
+// Manejar la creación o actualización de alertas
+if (Astro.request.method === 'POST') {
+  try {
+    const formData = await Astro.request.formData();
+    const action = formData.get('action');
+    
+    if (action === 'resolve') {
+      const alertId = formData.get('alertId');
+      await prisma.alert.update({
+        where: { id: alertId },
+        data: { status: 'resolved' }
+      });
+      return Astro.redirect('/alerts?success=resolved');
+    } else if (action === 'delete') {
+      const alertId = formData.get('alertId');
+      await prisma.alert.delete({
+        where: { id: alertId }
+      });
+      return Astro.redirect('/alerts?success=deleted');
+    } else if (action === 'create') {
+      const type = formData.get('type');
+      const message = formData.get('message');
+      
+      await prisma.alert.create({
+        data: {
+          type,
+          message,
+          status: 'active'
+        }
+      });
+      return Astro.redirect('/alerts?success=created');
+    }
+  } catch (error) {
+    console.error('Error procesando la solicitud:', error);
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+
+await prisma.$disconnect();
+---
+
+<Layout title="Alertas del Sistema | Sistema de Gestión de Inventario">
+  <DashboardHeader title="Gestión de Alertas" />
+  
+  <div class="alerts-container">
+    <!-- Mostrar mensaje de éxito si existe -->
+    {Astro.url.searchParams.has('success') && (
+      <div class="alert-notification">
+        {Astro.url.searchParams.get('success') === 'resolved' && 
+          <div class="success-message">La alerta ha sido resuelta correctamente</div>
+        }
+        {Astro.url.searchParams.get('success') === 'deleted' && 
+          <div class="success-message">La alerta ha sido eliminada correctamente</div>
+        }
+        {Astro.url.searchParams.get('success') === 'created' && 
+          <div class="success-message">La alerta ha sido creada correctamente</div>
+        }
+      </div>
+    )}
+    
+    <div class="alerts-grid">
+      <!-- Panel de estadísticas -->
+      <div class="alerts-card stats-card">
+        <h2 class="card-title">Resumen de Alertas</h2>
+        
+        <div class="stats-grid">
+          <div class="stat-item">
+            <span class="stat-value">{stats.total}</span>
+            <span class="stat-label">Total</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-value">{stats.active}</span>
+            <span class="stat-label">Activas</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-value">{stats.resolved}</span>
+            <span class="stat-label">Resueltas</span>
+          </div>
+        </div>
+        
+        <div class="types-grid">
+          <div class="type-item type-danger">
+            <span class="type-count">{stats.danger}</span>
+            <span class="type-label">Peligro</span>
+          </div>
+          <div class="type-item type-warning">
+            <span class="type-count">{stats.warning}</span>
+            <span class="type-label">Advertencia</span>
+          </div>
+          <div class="type-item type-info">
+            <span class="type-count">{stats.info}</span>
+            <span class="type-label">Información</span>
+          </div>
+          <div class="type-item type-success">
+            <span class="type-count">{stats.success}</span>
+            <span class="type-label">Éxito</span>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Panel de creación de alertas -->
+      <div class="alerts-card">
+        <h2 class="card-title">Crear Nueva Alerta</h2>
+        
+        <form method="POST" class="create-alert-form">
+          <input type="hidden" name="action" value="create">
+          
+          <div class="form-group">
+            <label for="type" class="form-label">Tipo de Alerta</label>
+            <select id="type" name="type" class="form-control" required>
+              <option value="INFO">Información</option>
+              <option value="WARNING">Advertencia</option>
+              <option value="DANGER">Peligro</option>
+              <option value="SUCCESS">Éxito</option>
+            </select>
+          </div>
+          
+          <div class="form-group">
+            <label for="message" class="form-label">Mensaje</label>
+            <textarea 
+              id="message" 
+              name="message" 
+              class="form-control" 
+              rows="3" 
+              required
+              placeholder="Escribe el mensaje de la alerta..."
+            ></textarea>
+          </div>
+          
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Crear Alerta</button>
+          </div>
+        </form>
+      </div>
+    </div>
+    
+    <!-- Listado de alertas -->
+    <div class="alerts-card full-width">
+      <h2 class="card-title">Todas las Alertas</h2>
+      
+      <div class="filter-bar">
+        <input 
+          type="text" 
+          id="alertSearchInput" 
+          class="search-input" 
+          placeholder="Buscar alertas..."
+        />
+        
+        <select id="statusFilter" class="filter-select">
+          <option value="all">Todos los estados</option>
+          <option value="active">Activas</option>
+          <option value="resolved">Resueltas</option>
+        </select>
+        
+        <select id="typeFilter" class="filter-select">
+          <option value="all">Todos los tipos</option>
+          <option value="DANGER">Peligro</option>
+          <option value="WARNING">Advertencia</option>
+          <option value="INFO">Información</option>
+          <option value="SUCCESS">Éxito</option>
+        </select>
+      </div>
+      
+      <div class="alerts-list">
+        {alerts.map((alert) => (
+          <div 
+            class={`alert-item alert-${alert.type.toLowerCase()}`}
+            data-type={alert.type}
+            data-status={alert.status}
+          >
+            <div class="alert-content">
+              <div class="alert-header">
+                <span class="alert-type">{alert.type}</span>
+                <span class="alert-status">{alert.status}</span>
+              </div>
+              <div class="alert-message">{alert.message}</div>
+              <div class="alert-date">Creada: {formatDate(alert.createdAt)}</div>
+            </div>
+            
+            <div class="alert-actions">
+              {alert.status === 'active' && (
+                <form method="POST" class="inline-form">
+                  <input type="hidden" name="action" value="resolve">
+                  <input type="hidden" name="alertId" value={alert.id}>
+                  <button type="submit" class="btn btn-small btn-success">
+                    Resolver
+                  </button>
+                </form>
+              )}
+              
+              <form method="POST" class="inline-form" onsubmit="return confirm('¿Estás seguro que deseas eliminar esta alerta?')">
+                <input type="hidden" name="action" value="delete">
+                <input type="hidden" name="alertId" value={alert.id}>
+                <button type="submit" class="btn btn-small btn-danger">
+                  Eliminar
+                </button>
+              </form>
+            </div>
+          </div>
+        ))}
+        
+        {alerts.length === 0 && (
+          <div class="no-data">
+            No hay alertas disponibles.
+          </div>
+        )}
+        
+        <div id="noAlertsFound" class="no-data" style="display: none;">
+          No se encontraron alertas con los filtros seleccionados.
+        </div>
+      </div>
+    </div>
+  </div>
+</Layout>
+
+<style>
+  .alerts-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 1rem;
+  }
+  
+  .alert-notification {
+    margin-bottom: 1.5rem;
+  }
+  
+  .success-message {
+    padding: 0.75rem 1rem;
+    background-color: rgba(34, 197, 94, 0.1);
+    color: #22c55e;
+    border: 1px solid rgba(34, 197, 94, 0.2);
+    border-radius: 0.375rem;
+  }
+  
+  .alerts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+  
+  .alerts-card {
+    background: var(--background-secondary);
+    border-radius: var(--card-radius);
+    padding: 1.5rem;
+    box-shadow: var(--shadow);
+  }
+  
+  .full-width {
+    grid-column: 1 / -1;
+  }
+  
+  .card-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 1.25rem;
+    color: var(--text-primary);
+  }
+  
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+  
+  .stat-item {
+    background: var(--background-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    padding: 1rem;
+    text-align: center;
+  }
+  
+  .stat-value {
+    display: block;
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 0.25rem;
+  }
+  
+  .stat-label {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+  }
+  
+  .types-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+  
+  .type-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    border-radius: 0.5rem;
+    padding: 0.75rem 1rem;
+  }
+  
+  .type-danger {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+  }
+  
+  .type-warning {
+    background: rgba(245, 158, 11, 0.1);
+    border: 1px solid rgba(245, 158, 11, 0.2);
+    color: #f59e0b;
+  }
+  
+  .type-info {
+    background: rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    color: #3b82f6;
+  }
+  
+  .type-success {
+    background: rgba(34, 197, 94, 0.1);
+    border: 1px solid rgba(34, 197, 94, 0.2);
+    color: #22c55e;
+  }
+  
+  .type-count {
+    font-size: 1.25rem;
+    font-weight: 700;
+  }
+  
+  .type-label {
+    font-size: 0.875rem;
+  }
+  
+  .form-group {
+    margin-bottom: 1.25rem;
+  }
+  
+  .form-label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-primary);
+  }
+  
+  .form-control {
+    width: 100%;
+    padding: 0.75rem;
+    border-radius: 0.375rem;
+    border: 1px solid var(--border-color);
+    background: var(--background-tertiary);
+    color: var(--text-primary);
+    font-size: 1rem;
+    transition: border-color 0.2s ease;
+  }
+  
+  .form-control:focus {
+    outline: none;
+    border-color: #3182ce;
+    box-shadow: 0 0 0 1px rgba(49, 130, 206, 0.5);
+  }
+  
+  .form-actions {
+    display: flex;
+    justify-content: flex-end;
+  }
+  
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.375rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: none;
+    text-decoration: none;
+  }
+  
+  .btn-small {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
+  }
+  
+  .btn-primary {
+    background-color: #3182ce;
+    color: white;
+  }
+  
+  .btn-primary:hover {
+    background-color: #2c5282;
+  }
+  
+  .btn-success {
+    background-color: #22c55e;
+    color: white;
+  }
+  
+  .btn-success:hover {
+    background-color: #16a34a;
+  }
+  
+  .btn-danger {
+    background-color: #ef4444;
+    color: white;
+  }
+  
+  .btn-danger:hover {
+    background-color: #dc2626;
+  }
+  
+  .filter-bar {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+  
+  .search-input {
+    flex: 1;
+    padding: 0.75rem;
+    border-radius: 0.375rem;
+    border: 1px solid var(--border-color);
+    background: var(--background-tertiary);
+    color: var(--text-primary);
+  }
+  
+  .filter-select {
+    padding: 0.75rem;
+    border-radius: 0.375rem;
+    border: 1px solid var(--border-color);
+    background: var(--background-tertiary);
+    color: var(--text-primary);
+    min-width: 150px;
+  }
+  
+  .alerts-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .alert-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 1.25rem;
+    border-radius: 0.5rem;
+    border-left-width: 4px;
+    border-left-style: solid;
+  }
+  
+  .alert-content {
+    flex: 1;
+  }
+  
+  .alert-danger {
+    background: rgba(239, 68, 68, 0.05);
+    border-left-color: #ef4444;
+  }
+  
+  .alert-warning {
+    background: rgba(245, 158, 11, 0.05);
+    border-left-color: #f59e0b;
+  }
+  
+  .alert-info {
+    background: rgba(59, 130, 246, 0.05);
+    border-left-color: #3b82f6;
+  }
+  
+  .alert-success {
+    background: rgba(34, 197, 94, 0.05);
+    border-left-color: #22c55e;
+  }
+  
+  .alert-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+  }
+  
+  .alert-type {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+  
+  .alert-danger .alert-type {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+  }
+  
+  .alert-warning .alert-type {
+    background: rgba(245, 158, 11, 0.1);
+    color: #f59e0b;
+  }
+  
+  .alert-info .alert-type {
+    background: rgba(59, 130, 246, 0.1);
+    color: #3b82f6;
+  }
+  
+  .alert-success .alert-type {
+    background: rgba(34, 197, 94, 0.1);
+    color: #22c55e;
+  }
+  
+  .alert-status {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    background: rgba(75, 85, 99, 0.1);
+    color: var(--text-secondary);
+  }
+  
+  .alert-message {
+    margin-bottom: 0.75rem;
+    font-size: 1rem;
+    color: var(--text-primary);
+  }
+  
+  .alert-date {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+  }
+  
+  .alert-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  
+  .inline-form {
+    display: inline;
+  }
+  
+  .no-data {
+    padding: 2rem;
+    text-align: center;
+    border-radius: 0.5rem;
+    border: 1px dashed var(--border-color);
+    color: var(--text-secondary);
+    font-style: italic;
+  }
+  
+  @media (max-width: 768px) {
+    .filter-bar {
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+  }
+</style>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    // Referencias a los elementos DOM
+    const searchInput = document.getElementById('alertSearchInput');
+    const statusFilter = document.getElementById('statusFilter');
+    const typeFilter = document.getElementById('typeFilter');
+    const alertItems = document.querySelectorAll('.alert-item');
+    const noAlertsFound = document.getElementById('noAlertsFound');
+    
+    // Función para filtrar las alertas
+    function filterAlerts() {
+      const searchTerm = searchInput.value.toLowerCase();
+      const statusValue = statusFilter.value;
+      const typeValue = typeFilter.value;
+      
+      let visibleCount = 0;
+      
+      alertItems.forEach((alert) => {
+        const alertType = alert.getAttribute('data-type');
+        const alertStatus = alert.getAttribute('data-status');
+        const alertMessage = alert.querySelector('.alert-message').textContent.toLowerCase();
+        
+        // Verificar si cumple con todos los filtros
+        const matchesSearch = !searchTerm || alertMessage.includes(searchTerm);
+        const matchesStatus = statusValue === 'all' || alertStatus === statusValue;
+        const matchesType = typeValue === 'all' || alertType === typeValue;
+        
+        // Mostrar u ocultar según el resultado
+        if (matchesSearch && matchesStatus && matchesType) {
+          alert.style.display = '';
+          visibleCount++;
+        } else {
+          alert.style.display = 'none';
+        }
+      });
+      
+      // Mostrar mensaje si no hay resultados
+      if (noAlertsFound) {
+        noAlertsFound.style.display = visibleCount === 0 ? 'block' : 'none';
+      }
+    }
+    
+    // Agregar event listeners
+    if (searchInput) searchInput.addEventListener('input', filterAlerts);
+    if (statusFilter) statusFilter.addEventListener('change', filterAlerts);
+    if (typeFilter) typeFilter.addEventListener('change', filterAlerts);
+    
+    // Inicializar con los valores por defecto
+    filterAlerts();
+    
+    // Ocultar notificación de éxito después de 5 segundos
+    const successMessage = document.querySelector('.success-message');
+    if (successMessage) {
+      setTimeout(() => {
+        successMessage.style.opacity = '0';
+        successMessage.style.transition = 'opacity 0.5s ease';
+        
+        setTimeout(() => {
+          successMessage.style.display = 'none';
+        }, 500);
+      }, 5000);
+    }
+  });
+</script> 

@@ -1,0 +1,295 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import { prisma } from "../../lib/prisma.js";
+
+// Obtener todos los supervisores
+const supervisors = await prisma.supervisor.findMany({
+  orderBy: {
+    name: 'asc'
+  }
+});
+
+// Obtener todos los dispositivos
+const devices = await prisma.device.findMany({
+  orderBy: {
+    name: 'asc'
+  }
+});
+
+// Obtener todos los préstamos
+const loans = await prisma.loan.findMany({
+  include: {
+    device: true,
+    supervisor: true
+  },
+  orderBy: {
+    loanDate: 'desc'
+  },
+  take: 10 // Limitar a 10 para no sobrecargar
+});
+---
+
+<Layout title="Debug Sistema">
+  <div class="container">
+    <h1>Información de Debug</h1>
+    
+    <div class="debug-section">
+      <h2>Supervisores ({supervisors.length})</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Nombre</th>
+            <th>Email</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          {supervisors.map(sup => (
+            <tr>
+              <td>{sup.id}</td>
+              <td>{sup.name}</td>
+              <td>{sup.email}</td>
+              <td>{sup.status}</td>
+            </tr>
+          ))}
+          {supervisors.length === 0 && (
+            <tr>
+              <td colspan="4">No hay supervisores registrados</td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+    
+    <div class="debug-section">
+      <h2>Dispositivos ({devices.length})</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Nombre</th>
+            <th>Categoría</th>
+            <th>Estado</th>
+            <th>Ubicación</th>
+            <th>QR</th>
+          </tr>
+        </thead>
+        <tbody>
+          {devices.map(dev => (
+            <tr>
+              <td>{dev.id}</td>
+              <td>{dev.name}</td>
+              <td>{dev.category}</td>
+              <td>{dev.status}</td>
+              <td>{dev.location}</td>
+              <td>{dev.qrCode}</td>
+            </tr>
+          ))}
+          {devices.length === 0 && (
+            <tr>
+              <td colspan="6">No hay dispositivos registrados</td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+    
+    <div class="debug-section">
+      <h2>Últimos Préstamos ({loans.length})</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Dispositivo</th>
+            <th>Supervisor</th>
+            <th>Estado</th>
+            <th>Fecha</th>
+          </tr>
+        </thead>
+        <tbody>
+          {loans.map(loan => (
+            <tr>
+              <td>{loan.id}</td>
+              <td>{loan.device?.name || 'N/A'}</td>
+              <td>{loan.supervisor?.name || 'N/A'}</td>
+              <td>{loan.status}</td>
+              <td>{new Date(loan.loanDate).toLocaleString()}</td>
+            </tr>
+          ))}
+          {loans.length === 0 && (
+            <tr>
+              <td colspan="5">No hay préstamos registrados</td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+    
+    <div class="debug-section">
+      <h2>Test de Formulario</h2>
+      <form id="testForm" class="debug-form">
+        <div class="form-group">
+          <label for="supervisorId">Supervisor</label>
+          <select id="supervisorId" name="supervisorId">
+            <option value="">Seleccionar supervisor...</option>
+            {supervisors.map((sup) => (
+              <option value={sup.id}>{sup.name}</option>
+            ))}
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label for="deviceId">Dispositivo</label>
+          <select id="deviceId" name="deviceId">
+            <option value="">Seleccionar dispositivo...</option>
+            {devices.map((dev) => (
+              <option value={dev.id}>{dev.name}</option>
+            ))}
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <button type="button" id="testBtn">Probar API</button>
+        </div>
+        
+        <div id="apiResult" class="api-result"></div>
+      </form>
+    </div>
+  </div>
+</Layout>
+
+<style>
+  .container {
+    max-width: 1200px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+  }
+  
+  h1 {
+    margin-bottom: 2rem;
+  }
+  
+  .debug-section {
+    margin-bottom: 3rem;
+    background: #f8f9fa;
+    padding: 1.5rem;
+    border-radius: 0.5rem;
+  }
+  
+  h2 {
+    margin-bottom: 1rem;
+  }
+  
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 1rem;
+  }
+  
+  th, td {
+    padding: 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid #e2e8f0;
+  }
+  
+  th {
+    background-color: #f1f5f9;
+    font-weight: bold;
+  }
+  
+  .debug-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  label {
+    font-weight: bold;
+  }
+  
+  select, button {
+    padding: 0.5rem;
+    border-radius: 0.25rem;
+    border: 1px solid #cbd5e1;
+  }
+  
+  button {
+    background-color: #3b82f6;
+    color: white;
+    cursor: pointer;
+    border: none;
+    font-weight: bold;
+    padding: 0.75rem 1rem;
+    max-width: 200px;
+  }
+  
+  .api-result {
+    margin-top: 1rem;
+    padding: 1rem;
+    border-radius: 0.25rem;
+    background-color: #f1f5f9;
+    min-height: 100px;
+    white-space: pre-wrap;
+    font-family: monospace;
+  }
+</style>
+
+<script>
+  const testForm = document.getElementById('testForm');
+  const supervisorSelect = document.getElementById('supervisorId');
+  const deviceSelect = document.getElementById('deviceId');
+  const testBtn = document.getElementById('testBtn');
+  const apiResult = document.getElementById('apiResult');
+  
+  testBtn?.addEventListener('click', async () => {
+    if (!apiResult) return;
+    
+    const supervisorId = supervisorSelect?.value;
+    const deviceId = deviceSelect?.value;
+    
+    if (!supervisorId || !deviceId) {
+      apiResult.textContent = 'Error: Debes seleccionar un supervisor y un dispositivo';
+      apiResult.style.backgroundColor = '#fee2e2';
+      return;
+    }
+    
+    apiResult.textContent = 'Enviando solicitud...';
+    apiResult.style.backgroundColor = '#dbeafe';
+    
+    try {
+      const response = await fetch('/api/loans', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          deviceIds: [deviceId],
+          supervisorId,
+          eventCode: 'TEST-DEBUG',
+          newLocation: 'Ubicación de prueba',
+          notes: 'Préstamo de prueba desde página de debug',
+        }),
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        apiResult.textContent = 'Éxito!\n\n' + JSON.stringify(data, null, 2);
+        apiResult.style.backgroundColor = '#dcfce7';
+      } else {
+        apiResult.textContent = 'Error!\n\n' + JSON.stringify(data, null, 2);
+        apiResult.style.backgroundColor = '#fee2e2';
+      }
+    } catch (error) {
+      apiResult.textContent = 'Error de conexión: ' + (error instanceof Error ? error.message : String(error));
+      apiResult.style.backgroundColor = '#fee2e2';
+    }
+  });
+</script> 

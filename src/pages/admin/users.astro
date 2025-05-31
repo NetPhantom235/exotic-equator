@@ -1,0 +1,496 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import { PrismaClient } from "@prisma/client";
+import { authService } from "../../lib/auth/authService.js";
+import { protectApiRoute } from "../../middleware/auth.js";
+
+// Proteger la ruta - solo administradores
+const authError = await protectApiRoute(Astro, ["ADMIN"]);
+if (authError) return authError;
+
+// Obtener todos los usuarios
+const prisma = new PrismaClient();
+const users = await prisma.user.findMany({
+  orderBy: { createdAt: "desc" }
+});
+
+// Manejar la creación de usuario
+let error: string | null = null;
+let success: string | null = null;
+
+if (Astro.request.method === "POST") {
+  try {
+    const formData = await Astro.request.formData();
+    const action = formData.get("action")?.toString();
+    
+    // Crear nuevo usuario
+    if (action === "create") {
+      const email = formData.get("email")?.toString();
+      const password = formData.get("password")?.toString();
+      const role = formData.get("role")?.toString();
+      
+      if (!email || !password || !role) {
+        error = "Todos los campos son obligatorios";
+      } else {
+        try {
+          await authService.createUser({
+            email,
+            password,
+            role
+          });
+          success = "Usuario creado correctamente";
+          
+          // Recargar la lista de usuarios
+          return Astro.redirect("/admin/users?success=created");
+        } catch (err) {
+          if (err instanceof Error) {
+            error = err.message;
+          } else {
+            error = "Error al crear el usuario";
+          }
+        }
+      }
+    }
+    
+    // Eliminar usuario
+    if (action === "delete") {
+      const userId = formData.get("userId")?.toString();
+      
+      if (!userId) {
+        error = "ID de usuario no válido";
+      } else {
+        try {
+          await prisma.user.delete({
+            where: { id: userId }
+          });
+          success = "Usuario eliminado correctamente";
+          
+          // Recargar la lista de usuarios
+          return Astro.redirect("/admin/users?success=deleted");
+        } catch (err) {
+          error = "Error al eliminar el usuario";
+        }
+      }
+    }
+    
+    // Cambiar rol de usuario
+    if (action === "changeRole") {
+      const userId = formData.get("userId")?.toString();
+      const newRole = formData.get("role")?.toString();
+      
+      if (!userId || !newRole) {
+        error = "ID de usuario y rol son obligatorios";
+      } else {
+        try {
+          await prisma.user.update({
+            where: { id: userId },
+            data: { role: newRole }
+          });
+          success = "Rol de usuario actualizado correctamente";
+          
+          // Recargar la lista de usuarios
+          return Astro.redirect("/admin/users?success=updated");
+        } catch (err) {
+          error = "Error al actualizar el rol del usuario";
+        }
+      }
+    }
+  } catch (err) {
+    console.error("Error en el proceso:", err);
+    error = "Error en el proceso";
+  }
+}
+
+// Verificar si hay mensajes de éxito en la URL
+if (Astro.url.searchParams.has("success")) {
+  const successType = Astro.url.searchParams.get("success");
+  if (successType === "created") success = "Usuario creado correctamente";
+  if (successType === "deleted") success = "Usuario eliminado correctamente";
+  if (successType === "updated") success = "Usuario actualizado correctamente";
+}
+
+await prisma.$disconnect();
+---
+
+<Layout title="Administración de Usuarios | Sistema de Gestión de Inventario">
+  <div class="admin-header">
+    <h1>Administración de Usuarios</h1>
+    <p>Gestiona los usuarios del sistema</p>
+  </div>
+  
+  {error && <div class="alert alert-danger">{error}</div>}
+  {success && <div class="alert alert-success">{success}</div>}
+  
+  <div class="admin-content">
+    <div class="card">
+      <div class="card-header">
+        <h2>Crear Nuevo Usuario</h2>
+      </div>
+      <div class="card-body">
+        <form method="POST" class="create-user-form">
+          <input type="hidden" name="action" value="create">
+          
+          <div class="form-group">
+            <label for="email" class="form-label">Correo Electrónico</label>
+            <input type="email" id="email" name="email" class="form-control" required>
+          </div>
+          
+          <div class="form-group">
+            <label for="password" class="form-label">Contraseña</label>
+            <input type="password" id="password" name="password" class="form-control" required minlength="8">
+            <small class="form-text">Mínimo 8 caracteres</small>
+          </div>
+          
+          <div class="form-group">
+            <label for="role" class="form-label">Rol</label>
+            <select id="role" name="role" class="form-control" required>
+              <option value="USER">Usuario</option>
+              <option value="TECH">Técnico</option>
+              <option value="ADMIN">Administrador</option>
+            </select>
+          </div>
+          
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Crear Usuario</button>
+          </div>
+        </form>
+      </div>
+    </div>
+    
+    <div class="card">
+      <div class="card-header">
+        <h2>Usuarios Existentes</h2>
+        <div class="search-container">
+          <input type="text" id="userSearchInput" class="search-input" placeholder="Buscar usuarios...">
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="table-container">
+          <table class="users-table">
+            <thead>
+              <tr>
+                <th>Email</th>
+                <th>Rol</th>
+                <th>Fecha de Creación</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {users.map((user) => (
+                <tr class="user-row">
+                  <td>{user.email}</td>
+                  <td>
+                    <span class={`badge badge-${user.role === 'ADMIN' ? 'blue' : user.role === 'TECH' ? 'green' : 'gray'}`}>
+                      {user.role}
+                    </span>
+                  </td>
+                  <td>{new Date(user.createdAt).toLocaleDateString('es', { 
+                    day: '2-digit', 
+                    month: 'short', 
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  })}</td>
+                  <td class="actions-cell">
+                    <div class="actions-container">
+                      <form method="POST" class="inline-form">
+                        <input type="hidden" name="action" value="changeRole">
+                        <input type="hidden" name="userId" value={user.id}>
+                        <select name="role" class="role-select" onchange="this.form.submit()">
+                          <option value="USER" selected={user.role === 'USER'}>Usuario</option>
+                          <option value="TECH" selected={user.role === 'TECH'}>Técnico</option>
+                          <option value="ADMIN" selected={user.role === 'ADMIN'}>Administrador</option>
+                        </select>
+                      </form>
+                      
+                      <form method="POST" class="inline-form delete-form" onsubmit="return confirm('¿Estás seguro de que deseas eliminar este usuario?')">
+                        <input type="hidden" name="action" value="delete">
+                        <input type="hidden" name="userId" value={user.id}>
+                        <button type="submit" class="btn btn-danger btn-sm">Eliminar</button>
+                      </form>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          
+          {users.length === 0 && (
+            <div class="no-data">
+              No hay usuarios registrados en el sistema.
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  </div>
+</Layout>
+
+<style>
+  .admin-header {
+    margin-bottom: 2rem;
+  }
+  
+  .admin-header h1 {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  .admin-header p {
+    color: var(--text-secondary);
+    font-size: 1.1rem;
+  }
+  
+  .admin-content {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 2rem;
+  }
+  
+  .card {
+    background: var(--background-secondary);
+    border-radius: var(--card-radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  
+  .card-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .card-header h2 {
+    font-size: 1.25rem;
+    margin: 0;
+  }
+  
+  .card-body {
+    padding: 1.5rem;
+  }
+  
+  .form-group {
+    margin-bottom: 1.5rem;
+  }
+  
+  .form-label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+  }
+  
+  .form-control {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+    background: var(--background-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 0.375rem;
+    color: var(--text-primary);
+  }
+  
+  .form-control:focus {
+    outline: none;
+    border-color: #3182ce;
+    box-shadow: 0 0 0 1px rgba(49, 130, 206, 0.5);
+  }
+  
+  .form-text {
+    display: block;
+    margin-top: 0.25rem;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+  }
+  
+  .form-actions {
+    margin-top: 2rem;
+  }
+  
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem 1rem;
+    font-size: 1rem;
+    font-weight: 500;
+    border-radius: 0.375rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: none;
+  }
+  
+  .btn-primary {
+    background-color: #3182ce;
+    color: white;
+  }
+  
+  .btn-primary:hover {
+    background-color: #2c5282;
+  }
+  
+  .btn-danger {
+    background-color: #e53e3e;
+    color: white;
+  }
+  
+  .btn-danger:hover {
+    background-color: #c53030;
+  }
+  
+  .btn-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+  }
+  
+  .alert {
+    padding: 1rem;
+    margin-bottom: 2rem;
+    border-radius: 0.375rem;
+  }
+  
+  .alert-success {
+    background-color: rgba(34, 197, 94, 0.1);
+    border: 1px solid rgba(34, 197, 94, 0.2);
+    color: #22c55e;
+  }
+  
+  .alert-danger {
+    background-color: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+  }
+  
+  .table-container {
+    overflow-x: auto;
+  }
+  
+  .users-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  
+  .users-table th,
+  .users-table td {
+    padding: 1rem;
+    text-align: left;
+  }
+  
+  .users-table th {
+    background-color: var(--background-tertiary);
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+  
+  .users-table tr {
+    border-bottom: 1px solid var(--border-color);
+  }
+  
+  .users-table tr:last-child {
+    border-bottom: none;
+  }
+  
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    border-radius: 9999px;
+    text-transform: uppercase;
+  }
+  
+  .badge-blue {
+    background-color: rgba(49, 130, 206, 0.1);
+    color: #3182ce;
+  }
+  
+  .badge-green {
+    background-color: rgba(34, 197, 94, 0.1);
+    color: #22c55e;
+  }
+  
+  .badge-gray {
+    background-color: rgba(107, 114, 128, 0.1);
+    color: #6b7280;
+  }
+  
+  .actions-cell {
+    width: 200px;
+  }
+  
+  .actions-container {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  
+  .inline-form {
+    display: inline;
+  }
+  
+  .role-select {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+    background: var(--background-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 0.25rem;
+    color: var(--text-primary);
+  }
+  
+  .search-container {
+    position: relative;
+  }
+  
+  .search-input {
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    background: var(--background-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 0.375rem;
+    color: var(--text-primary);
+    width: 250px;
+  }
+  
+  .search-input:focus {
+    outline: none;
+    border-color: #3182ce;
+  }
+  
+  .no-data {
+    padding: 2rem;
+    text-align: center;
+    color: var(--text-secondary);
+    font-style: italic;
+  }
+  
+  @media (max-width: 1024px) {
+    .admin-content {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
+<script>
+  // Filtrado de usuarios en tiempo real
+  const searchInput = document.getElementById('userSearchInput');
+  const userRows = document.querySelectorAll('.user-row');
+  
+  if (searchInput) {
+    searchInput.addEventListener('input', function() {
+      const searchTerm = this.value.toLowerCase();
+      
+      userRows.forEach(row => {
+        const email = row.querySelector('td:first-child').textContent.toLowerCase();
+        const role = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
+        
+        if (email.includes(searchTerm) || role.includes(searchTerm)) {
+          row.style.display = '';
+        } else {
+          row.style.display = 'none';
+        }
+      });
+    });
+  }
+</script> 
