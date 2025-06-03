@@ -1,7 +1,7 @@
 ---
-import DashboardHeader from '../../components/DashboardHeader.astro';
-import Sidebar from '../../components/Sidebar.astro';
-import { PrismaClient } from '../../lib/prisma-adapter.js';
+import DashboardHeader from "../../components/DashboardHeader.astro";
+import Navbar from "../../components/Navbar.astro";
+import { PrismaClient } from "../../lib/prisma-adapter.js";
 
 // Verificar autenticación
 const prisma = new PrismaClient();
@@ -9,310 +9,441 @@ const prisma = new PrismaClient();
 // Obtener estadísticas para los reportes
 const totalDevices = await prisma.device.count();
 const availableDevices = await prisma.device.count({
-  where: { status: 'available' }
+  where: { status: "available" },
 });
 const loansThisMonth = await prisma.loan.count({
   where: {
     loanDate: {
-      gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1)
-    }
-  }
+      gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+    },
+  },
 });
 
-// Verificar si el usuario está autenticado
-const user = Astro.locals.user;
-if (!user || user.role !== 'ADMIN') {
-  return Astro.redirect('/login?message=Acceso+restringido');
-}
+// No authentication required
 
 // Obtener los 5 dispositivos más prestados
 const topDevices = await prisma.device.findMany({
   take: 5,
   include: {
     _count: {
-      select: { loans: true }
-    }
+      select: { loans: true },
+    },
   },
   orderBy: {
     loans: {
-      _count: 'desc'
-    }
-  }
+      _count: "desc",
+    },
+  },
 });
 
 // Obtener los últimos eventos de auditoría
 const recentAudits = await prisma.auditLog.findMany({
   take: 10,
   orderBy: {
-    createdAt: 'desc'
-  }
+    createdAt: "desc",
+  },
 });
 
 // Métricas de rendimiento
 const performanceMetrics = await prisma.queryMetric.groupBy({
-  by: ['queryType'],
+  by: ["queryType"],
   _avg: {
-    queryTime: true
+    queryTime: true,
   },
-  _count: true
+  _count: true,
 });
 ---
 
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Reportes | ExoticEquator</title>
-    <link rel="stylesheet" href="/styles/main.css">
+    <link rel="stylesheet" href="/styles/main.css" />
     <!-- Añadir Chart.js para gráficos -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-</head>
-<body class="flex h-screen bg-gray-100 dark:bg-gray-900">
-    <Sidebar activePage="admin" />
-    
+  </head>
+  <body class="flex h-screen bg-gray-100 dark:bg-gray-900">
+    <Navbar />
     <div class="flex-1 flex flex-col overflow-hidden">
-        <DashboardHeader title="Reportes del Sistema" user={user} />
-        
-        <main class="flex-1 overflow-y-auto p-4">
-            <div class="mb-6">
-                <h1 class="text-2xl font-bold text-gray-800 dark:text-white">Reportes y Estadísticas</h1>
-                <p class="text-gray-600 dark:text-gray-300">Analiza el rendimiento y uso del sistema</p>
+      <DashboardHeader title="Reportes del Sistema" />
+
+      <main class="flex-1 overflow-y-auto p-4">
+        <div class="mb-6">
+          <h1 class="text-2xl font-bold text-gray-800 dark:text-white">
+            Reportes y Estadísticas
+          </h1>
+          <p class="text-gray-600 dark:text-gray-300">
+            Analiza el rendimiento y uso del sistema
+          </p>
+        </div>
+
+        <!-- Filtros de reportes -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4 mb-6">
+          <div class="flex flex-wrap items-center gap-4">
+            <div>
+              <label
+                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                >Tipo de Reporte</label
+              >
+              <select
+                id="reportType"
+                class="bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm w-full"
+              >
+                <option value="general">Estadísticas Generales</option>
+                <option value="devices">Uso de Dispositivos</option>
+                <option value="loans">Préstamos y Devoluciones</option>
+                <option value="performance">Rendimiento del Sistema</option>
+              </select>
             </div>
-            
-            <!-- Filtros de reportes -->
-            <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4 mb-6">
-                <div class="flex flex-wrap items-center gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tipo de Reporte</label>
-                        <select id="reportType" class="bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm w-full">
-                            <option value="general">Estadísticas Generales</option>
-                            <option value="devices">Uso de Dispositivos</option>
-                            <option value="loans">Préstamos y Devoluciones</option>
-                            <option value="performance">Rendimiento del Sistema</option>
-                        </select>
-                    </div>
-                    
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Periodo</label>
-                        <select id="reportPeriod" class="bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm w-full">
-                            <option value="week">Última semana</option>
-                            <option value="month" selected>Último mes</option>
-                            <option value="quarter">Último trimestre</option>
-                            <option value="year">Último año</option>
-                        </select>
-                    </div>
-                    
-                    <div class="mt-4 md:mt-0 md:ml-auto">
-                        <button id="exportReport" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm flex items-center">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
-                            </svg>
-                            Exportar a Excel
-                        </button>
-                    </div>
-                </div>
+
+            <div>
+              <label
+                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                >Periodo</label
+              >
+              <select
+                id="reportPeriod"
+                class="bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm w-full"
+              >
+                <option value="week">Última semana</option>
+                <option value="month" selected>Último mes</option>
+                <option value="quarter">Último trimestre</option>
+                <option value="year">Último año</option>
+              </select>
             </div>
-            
-            <!-- Tarjetas de resumen -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-                    <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-2">Total Dispositivos</h3>
-                    <p class="text-3xl font-bold text-blue-600 dark:text-blue-400">{totalDevices}</p>
-                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                        {availableDevices} disponibles ({Math.round((availableDevices / totalDevices) * 100)}%)
-                    </p>
-                </div>
-                
-                <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-                    <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-2">Préstamos este mes</h3>
-                    <p class="text-3xl font-bold text-green-600 dark:text-green-400">{loansThisMonth}</p>
-                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                        En los últimos 30 días
-                    </p>
-                </div>
-                
-                <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-                    <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-2">Tasa de Uso</h3>
-                    <p class="text-3xl font-bold text-amber-600 dark:text-amber-400">{Math.round((1 - (availableDevices / totalDevices)) * 100)}%</p>
-                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                        De los dispositivos en uso
-                    </p>
-                </div>
-                
-                <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-                    <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-2">Consultas de rendimiento</h3>
-                    <p class="text-3xl font-bold text-purple-600 dark:text-purple-400">{performanceMetrics.length}</p>
-                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                        Tipos de operaciones monitoreadas
-                    </p>
-                </div>
+
+            <div class="mt-4 md:mt-0 md:ml-auto">
+              <button
+                id="exportReport"
+                class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm flex items-center"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="h-4 w-4 mr-1"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"
+                  ></path>
+                </svg>
+                Exportar a Excel
+              </button>
             </div>
-            
-            <!-- Gráficos y tablas de datos -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-                <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
-                    <div class="p-6">
-                        <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4">Uso de Dispositivos</h2>
-                        <div class="aspect-w-16 aspect-h-9">
-                            <canvas id="deviceUsageChart" class="w-full h-64"></canvas>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
-                    <div class="p-6">
-                        <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4">Tiempos de Préstamo</h2>
-                        <div class="aspect-w-16 aspect-h-9">
-                            <canvas id="loanTimeChart" class="w-full h-64"></canvas>
-                        </div>
-                    </div>
-                </div>
+          </div>
+        </div>
+
+        <!-- Tarjetas de resumen -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <h3
+              class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-2"
+            >
+              Total Dispositivos
+            </h3>
+            <p class="text-3xl font-bold text-blue-600 dark:text-blue-400">
+              {totalDevices}
+            </p>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+              {availableDevices} disponibles ({
+                Math.round((availableDevices / totalDevices) * 100)
+              }%)
+            </p>
+          </div>
+
+          <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <h3
+              class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-2"
+            >
+              Préstamos este mes
+            </h3>
+            <p class="text-3xl font-bold text-green-600 dark:text-green-400">
+              {loansThisMonth}
+            </p>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+              En los últimos 30 días
+            </p>
+          </div>
+
+          <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <h3
+              class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-2"
+            >
+              Tasa de Uso
+            </h3>
+            <p class="text-3xl font-bold text-amber-600 dark:text-amber-400">
+              {Math.round((1 - availableDevices / totalDevices) * 100)}%
+            </p>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+              De los dispositivos en uso
+            </p>
+          </div>
+
+          <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <h3
+              class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-2"
+            >
+              Consultas de rendimiento
+            </h3>
+            <p class="text-3xl font-bold text-purple-600 dark:text-purple-400">
+              {performanceMetrics.length}
+            </p>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+              Tipos de operaciones monitoreadas
+            </p>
+          </div>
+        </div>
+
+        <!-- Gráficos y tablas de datos -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          <div
+            class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden"
+          >
+            <div class="p-6">
+              <h2
+                class="text-xl font-semibold text-gray-800 dark:text-white mb-4"
+              >
+                Uso de Dispositivos
+              </h2>
+              <div class="aspect-w-16 aspect-h-9">
+                <canvas id="deviceUsageChart" class="w-full h-64"></canvas>
+              </div>
             </div>
-            
-            <!-- Tabla de dispositivos más prestados -->
-            <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden mb-6">
-                <div class="p-6">
-                    <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4">Dispositivos Más Prestados</h2>
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                            <thead class="bg-gray-50 dark:bg-gray-700">
-                                <tr>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Dispositivo</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Categoría</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Préstamos</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Estado Actual</th>
-                                </tr>
-                            </thead>
-                            <tbody class="bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700">
-                                {topDevices.map(device => (
-                                    <tr>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{device.name}</td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">{device.category}</td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">{device._count.loans}</td>
-                                        <td class="px-6 py-4 whitespace-nowrap">
-                                            <span class={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                                device.status === 'available' 
-                                                    ? 'bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100' 
-                                                    : 'bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100'
-                                            }`}>
-                                                {device.status === 'available' ? 'Disponible' : 'En préstamo'}
-                                            </span>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+          </div>
+
+          <div
+            class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden"
+          >
+            <div class="p-6">
+              <h2
+                class="text-xl font-semibold text-gray-800 dark:text-white mb-4"
+              >
+                Tiempos de Préstamo
+              </h2>
+              <div class="aspect-w-16 aspect-h-9">
+                <canvas id="loanTimeChart" class="w-full h-64"></canvas>
+              </div>
             </div>
-            
-            <!-- Log de actividad reciente -->
-            <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
-                <div class="p-6">
-                    <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4">Actividad Reciente</h2>
-                    <div class="space-y-4">
-                        {recentAudits.map(audit => (
-                            <div class="flex items-start p-3 border-l-4 border-blue-500 bg-blue-50 dark:bg-blue-900/20 rounded">
-                                <div class="flex-1">
-                                    <p class="text-sm text-gray-700 dark:text-gray-300">
-                                        <span class="font-medium">{audit.action}</span> - {audit.entityType} {audit.entityId}
-                                    </p>
-                                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                        {new Date(audit.createdAt).toLocaleString()} - Usuario: {audit.userId}
-                                    </p>
-                                    {audit.details && (
-                                        <p class="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                                            {audit.details}
-                                        </p>
-                                    )}
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
+          </div>
+        </div>
+
+        <!-- Tabla de dispositivos más prestados -->
+        <div
+          class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden mb-6"
+        >
+          <div class="p-6">
+            <h2
+              class="text-xl font-semibold text-gray-800 dark:text-white mb-4"
+            >
+              Dispositivos Más Prestados
+            </h2>
+            <div class="overflow-x-auto">
+              <table
+                class="min-w-full divide-y divide-gray-200 dark:divide-gray-700"
+              >
+                <thead class="bg-gray-50 dark:bg-gray-700">
+                  <tr>
+                    <th
+                      class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                      >Dispositivo</th
+                    >
+                    <th
+                      class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                      >Categoría</th
+                    >
+                    <th
+                      class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                      >Préstamos</th
+                    >
+                    <th
+                      class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                      >Estado Actual</th
+                    >
+                  </tr>
+                </thead>
+                <tbody
+                  class="bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700"
+                >
+                  {
+                    topDevices.map((device) => (
+                      <tr>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">
+                          {device.name}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
+                          {device.category}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
+                          {device._count.loans}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                          <span
+                            class={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                              device.status === "available"
+                                ? "bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100"
+                                : "bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100"
+                            }`}
+                          >
+                            {device.status === "available"
+                              ? "Disponible"
+                              : "En préstamo"}
+                          </span>
+                        </td>
+                      </tr>
+                    ))
+                  }
+                </tbody>
+              </table>
             </div>
-        </main>
+          </div>
+        </div>
+
+        <!-- Log de actividad reciente -->
+        <div
+          class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden"
+        >
+          <div class="p-6">
+            <h2
+              class="text-xl font-semibold text-gray-800 dark:text-white mb-4"
+            >
+              Actividad Reciente
+            </h2>
+            <div class="space-y-4">
+              {
+                recentAudits.map((audit) => (
+                  <div class="flex items-start p-3 border-l-4 border-blue-500 bg-blue-50 dark:bg-blue-900/20 rounded">
+                    <div class="flex-1">
+                      <p class="text-sm text-gray-700 dark:text-gray-300">
+                        <span class="font-medium">{audit.action}</span> -{" "}
+                        {audit.entityType} {audit.entityId}
+                      </p>
+                      <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        {new Date(audit.createdAt).toLocaleString()} - Usuario:{" "}
+                        {audit.userId}
+                      </p>
+                      {audit.details && (
+                        <p class="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                          {audit.details}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ))
+              }
+            </div>
+          </div>
+        </div>
+      </main>
     </div>
-    
+
     <script>
-    // Inicializar gráficos cuando la página cargue
-    document.addEventListener('DOMContentLoaded', () => {
+      // Inicializar gráficos cuando la página cargue
+      document.addEventListener("DOMContentLoaded", () => {
         // Gráfico de uso de dispositivos
-        const deviceUsageCtx = document.getElementById('deviceUsageChart').getContext('2d');
+        const deviceUsageCtx = document
+          .getElementById("deviceUsageChart")
+          .getContext("2d");
         new Chart(deviceUsageCtx, {
-            type: 'pie',
-            data: {
-                labels: ['En préstamo', 'Disponibles', 'En mantenimiento', 'Perdidos'],
-                datasets: [{
-                    data: [
-                        totalDevices - availableDevices, 
-                        availableDevices, 
-                        Math.round(totalDevices * 0.05), 
-                        Math.round(totalDevices * 0.02)
-                    ],
-                    backgroundColor: [
-                        '#EF4444', // Rojo
-                        '#10B981', // Verde
-                        '#F59E0B', // Ámbar
-                        '#6B7280', // Gris
-                    ],
-                    borderWidth: 0
-                }]
+          type: "pie",
+          data: {
+            labels: [
+              "En préstamo",
+              "Disponibles",
+              "En mantenimiento",
+              "Perdidos",
+            ],
+            datasets: [
+              {
+                data: [
+                  totalDevices - availableDevices,
+                  availableDevices,
+                  Math.round(totalDevices * 0.05),
+                  Math.round(totalDevices * 0.02),
+                ],
+                backgroundColor: [
+                  "#EF4444", // Rojo
+                  "#10B981", // Verde
+                  "#F59E0B", // Ámbar
+                  "#6B7280", // Gris
+                ],
+                borderWidth: 0,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: "bottom",
+                labels: {
+                  usePointStyle: true,
+                  padding: 15,
+                },
+              },
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: {
-                            usePointStyle: true,
-                            padding: 15
-                        }
-                    }
-                }
-            }
+          },
         });
-        
+
         // Gráfico de tiempos de préstamo (simulado)
-        const loanTimeCtx = document.getElementById('loanTimeChart').getContext('2d');
+        const loanTimeCtx = document
+          .getElementById("loanTimeChart")
+          .getContext("2d");
         new Chart(loanTimeCtx, {
-            type: 'bar',
-            data: {
-                labels: ['<1 día', '1-3 días', '4-7 días', '1-2 semanas', '>2 semanas'],
-                datasets: [{
-                    label: 'Tiempo de préstamo',
-                    data: [15, 30, 25, 18, 12],
-                    backgroundColor: '#3B82F6', // Azul
-                }]
+          type: "bar",
+          data: {
+            labels: [
+              "<1 día",
+              "1-3 días",
+              "4-7 días",
+              "1-2 semanas",
+              ">2 semanas",
+            ],
+            datasets: [
+              {
+                label: "Tiempo de préstamo",
+                data: [15, 30, 25, 18, 12],
+                backgroundColor: "#3B82F6", // Azul
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              y: {
+                beginAtZero: true,
+                title: {
+                  display: true,
+                  text: "Número de préstamos",
+                },
+              },
+              x: {
+                title: {
+                  display: true,
+                  text: "Duración",
+                },
+              },
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        title: {
-                            display: true,
-                            text: 'Número de préstamos'
-                        }
-                    },
-                    x: {
-                        title: {
-                            display: true,
-                            text: 'Duración'
-                        }
-                    }
-                }
-            }
+          },
         });
-        
+
         // Manejar exportación
-        document.getElementById('exportReport').addEventListener('click', () => {
-            alert('Exportando reporte... Esta función estará disponible en la versión beta.');
-        });
-    });
+        document
+          .getElementById("exportReport")
+          .addEventListener("click", () => {
+            alert(
+              "Exportando reporte... Esta función estará disponible en la versión beta."
+            );
+          });
+      });
     </script>
-</body>
-</html> 
+  </body>
+</html>
+

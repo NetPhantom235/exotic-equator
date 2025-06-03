@@ -1,7 +1,8 @@
 import type { APIContext } from 'astro';
-import { errorHandler } from '../lib/errorHandler';
+import { errorHandler } from '../lib/errorHandler.js';
 
-export async function onRequest({ request, locals }: APIContext, next: () => Promise<Response>) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export async function onRequest({ request }: APIContext, next: () => Promise<Response>) {
   try {
     const response = await next();
     return response;
@@ -34,4 +35,4 @@ export async function onRequest({ request, locals }: APIContext, next: () => Pro
       }
     );
   }
-} 
+}

@@ -1,64 +1,98 @@
 ---
 interface Props {
-  type?: 'success' | 'error' | 'warning' | 'info';
+  type?: "success" | "error" | "warning" | "info";
   message: string;
   duration?: number;
 }
 
-const { 
-  type = 'info',
-  message,
-  duration = 3000
-} = Astro.props;
+const { type = "info", message, duration = 3000 } = Astro.props;
 
 const typeStyles = {
-  success: 'bg-green-50 text-green-800 dark:bg-green-900/50 dark:text-green-200',
-  error: 'bg-red-50 text-red-800 dark:bg-red-900/50 dark:text-red-200',
-  warning: 'bg-yellow-50 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-200',
-  info: 'bg-blue-50 text-blue-800 dark:bg-blue-900/50 dark:text-blue-200'
+  success:
+    "bg-green-50 text-green-800 dark:bg-green-900/50 dark:text-green-200",
+  error: "bg-red-50 text-red-800 dark:bg-red-900/50 dark:text-red-200",
+  warning:
+    "bg-yellow-50 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-200",
+  info: "bg-blue-50 text-blue-800 dark:bg-blue-900/50 dark:text-blue-200",
 };
 
 const iconStyles = {
-  success: 'text-green-400 dark:text-green-300',
-  error: 'text-red-400 dark:text-red-300',
-  warning: 'text-yellow-400 dark:text-yellow-300',
-  info: 'text-blue-400 dark:text-blue-300'
+  success: "text-green-400 dark:text-green-300",
+  error: "text-red-400 dark:text-red-300",
+  warning: "text-yellow-400 dark:text-yellow-300",
+  info: "text-blue-400 dark:text-blue-300",
 };
 ---
 
 <div
   id="toast"
-  class={`fixed bottom-4 right-4 flex items-center p-4 rounded-lg shadow transition-all duration-300 transform translate-y-full opacity-0 ${typeStyles[type]}`}
-  role="alert"
+  class={`fixed bottom-4 right-4 flex items-center p-4 rounded-lg shadow-lg transition-all duration-300 transform translate-y-full opacity-0 ${typeStyles[type]}`}
+  role="status"
   aria-live="polite"
+  aria-atomic="true"
   data-duration={duration}
+  data-type={type}
+  tabindex="0"
 >
   <div class="toast-icon">
-    {type === 'success' && (
-      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-        <path d="M7 10l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-    )}
-    {type === 'error' && (
-      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-        <path d="M10 10l4 4m0-4l-4 4m-5-4a9 9 0 1118 0 9 9 0 01-18 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-      </svg>
-    )}
-    {type === 'warning' && (
-      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-        <path d="M10 8v4m0 4h.01M19 10a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-      </svg>
-    )}
-    {type === 'info' && (
-      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-        <path d="M10 14v-4m0-4h.01M19 10a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-      </svg>
-    )}
+    {
+      type === "success" && (
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+          <path
+            d="M7 10l2 2 4-4"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+      )
+    }
+    {
+      type === "error" && (
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+          <path
+            d="M10 10l4 4m0-4l-4 4m-5-4a9 9 0 1118 0 9 9 0 01-18 0z"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+          />
+        </svg>
+      )
+    }
+    {
+      type === "warning" && (
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+          <path
+            d="M10 8v4m0 4h.01M19 10a9 9 0 11-18 0 9 9 0 0118 0z"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+          />
+        </svg>
+      )
+    }
+    {
+      type === "info" && (
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+          <path
+            d="M10 14v-4m0-4h.01M19 10a9 9 0 11-18 0 9 9 0 0118 0z"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+          />
+        </svg>
+      )
+    }
   </div>
   <p class="toast-message">{message}</p>
   <button class="toast-close" aria-label="Cerrar notificación">
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-      <path d="M4 4l8 8m0-8l-8 8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      <path
+        d="M4 4l8 8m0-8l-8 8"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"></path>
     </svg>
   </button>
 </div>
@@ -150,33 +184,101 @@ const iconStyles = {
 
 <script>
   class Toast extends HTMLElement {
+    #timer;
+    #pausedAt;
+    #remainingTime;
+
     constructor() {
       super();
-      this.duration = parseInt(this.dataset.duration || '3000', 10);
-      this.setupEventListeners();
-      this.startTimer();
+      this.duration = parseInt(this.dataset.duration || "3000", 10);
+      this.#remainingTime = this.duration;
+      this.#setupEventListeners();
+      this.show();
     }
 
-    setupEventListeners() {
-      const closeButton = this.querySelector('.toast-close');
+    #setupEventListeners() {
+      // Manejo de foco
+      this.addEventListener("mouseenter", () => this.pause());
+      this.addEventListener("mouseleave", () => this.resume());
+      this.addEventListener("focus", () => this.pause());
+      this.addEventListener("blur", () => this.resume());
+
+      // Soporte de teclado
+      this.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") {
+          e.preventDefault();
+          this.close();
+        }
+      });
+
+      // Botón de cerrar
+      const closeButton = this.querySelector(".toast-close");
       if (closeButton) {
-        closeButton.addEventListener('click', () => this.close());
+        closeButton.addEventListener("click", () => this.close());
       }
+    }
+
+    show() {
+      requestAnimationFrame(() => {
+        this.classList.remove("translate-y-full", "opacity-0");
+        this.classList.add("translate-y-0", "opacity-100");
+        this.dispatchEvent(new CustomEvent("toast:show"));
+        this.startTimer();
+      });
     }
 
     startTimer() {
       if (this.duration > 0) {
-        setTimeout(() => this.close(), this.duration);
+        const startTime = Date.now();
+        this.#timer = setInterval(() => {
+          const elapsedTime = Date.now() - startTime;
+          const progress = Math.min(elapsedTime / this.duration, 1);
+
+          if (progress >= 1) {
+            this.close();
+          }
+        }, 100);
+      }
+    }
+
+    pause() {
+      if (this.#timer) {
+        clearInterval(this.#timer);
+        this.#pausedAt = Date.now();
+      }
+    }
+
+    resume() {
+      if (this.#pausedAt) {
+        const pauseDuration = Date.now() - this.#pausedAt;
+        this.#remainingTime -= pauseDuration;
+
+        if (this.#remainingTime > 0) {
+          this.duration = this.#remainingTime;
+          this.startTimer();
+        } else {
+          this.close();
+        }
+
+        this.#pausedAt = null;
       }
     }
 
     close() {
-      this.style.animation = `slideOut var(--transition-normal) forwards`;
+      if (this.#timer) {
+        clearInterval(this.#timer);
+      }
+
+      this.setAttribute("aria-hidden", "true");
+      this.classList.add("translate-y-full", "opacity-0");
+
+      this.dispatchEvent(new CustomEvent("toast:close"));
+
       setTimeout(() => {
         this.remove();
-      }, 250);
+      }, 300);
     }
   }
 
-  customElements.define('astro-toast', Toast);
+  customElements.define("astro-toast", Toast);
 </script>

@@ -1,0 +1,63 @@
+---
+interface Props {
+  qr: string;
+  onRegister: (device: any) => void;
+  onClose: () => void;
+}
+const { qr, onRegister, onClose } = Astro.props;
+let form = { name: '', serial: '', category: '', qr };
+let error = '';
+let loading = false;
+
+async function handleSubmit(e) {
+  e.preventDefault();
+  error = '';
+  if (!form.name || !form.serial || !form.category) {
+    error = 'Todos los campos son obligatorios.';
+    return;
+  }
+  loading = true;
+  try {
+    const res = await fetch('/api/devices/new', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(form),
+    });
+    if (!res.ok) {
+      const data = await res.json();
+      error = data.error || 'Error al registrar dispositivo';
+    } else {
+      const device = await res.json();
+      onRegister(device);
+    }
+  } catch (e) {
+    error = 'Error de red.';
+  } finally {
+    loading = false;
+  }
+}
+---
+<div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
+  <div class="bg-white dark:bg-gray-900 rounded-lg shadow-lg p-6 relative w-full max-w-md">
+    <button class="absolute top-2 right-2 text-gray-500 hover:text-red-500" on:click={onClose} aria-label="Cerrar">&times;</button>
+    <h2 class="text-lg font-semibold mb-4 text-gray-800 dark:text-gray-100">Registrar Dispositivo</h2>
+    {error && <div class="mb-4 text-red-600">{error}</div>}
+    <form on:submit={handleSubmit} autocomplete="off">
+      <div class="grid grid-cols-1 gap-4">
+        <input class="input" type="text" placeholder="Nombre del dispositivo" bind:value={form.name} required />
+        <input class="input" type="text" placeholder="Número de serie" bind:value={form.serial} required />
+        <input class="input" type="text" placeholder="Categoría" bind:value={form.category} required />
+        <input class="input" type="text" value={qr} readonly />
+      </div>
+      <button type="submit" class="btn btn-primary w-full mt-6" disabled={loading}>
+        {loading ? 'Guardando...' : 'Registrar'}
+      </button>
+    </form>
+  </div>
+</div>
+
+<style>
+  .input {
+    @apply px-4 py-2 rounded border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 transition;
+  }
+</style> 

@@ -1,0 +1,118 @@
+---
+import DeviceQRScanner from './DeviceQRScanner.astro';
+import DeviceRegisterForm from './DeviceRegisterForm.astro';
+import DeviceCart from './DeviceCart.astro';
+
+interface Device { id: string; name: string; serial?: string; category?: string; qr?: string; }
+interface Supervisor { id: string; name: string; }
+interface Props {
+  devices: Device[];
+  supervisors: Supervisor[];
+  onSuccess?: () => void;
+}
+const { devices = [], supervisors = [], onSuccess } = Astro.props;
+
+let form = {
+  supervisorId: '',
+  startDate: '',
+  endDate: '',
+};
+let error = '';
+let loading = false;
+let showScanner = false;
+let showRegisterForm = false;
+let scannedDeviceQR = '';
+let cart = [];
+
+// Persistencia del carrito
+if (typeof window !== 'undefined') {
+  cart = JSON.parse(localStorage.getItem('loanCart') || '[]');
+}
+function saveCart() {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('loanCart', JSON.stringify(cart));
+  }
+}
+function addToCart(device) {
+  if (!cart.find(d => d.id === device.id)) {
+    cart.push(device);
+    saveCart();
+  }
+}
+function removeFromCart(id) {
+  cart = cart.filter(d => d.id !== id);
+  saveCart();
+}
+
+async function handleScan(qrValue) {
+  // Buscar dispositivo por QR
+  const res = await fetch(`/api/devices/${qrValue}`);
+  if (res.ok) {
+    const device = await res.json();
+    addToCart(device);
+    showScanner = false;
+  } else {
+    scannedDeviceQR = qrValue;
+    showScanner = false;
+    showRegisterForm = true;
+  }
+}
+function handleRegister(device) {
+  addToCart(device);
+  showRegisterForm = false;
+}
+
+async function handleSubmit(e) {
+  e.preventDefault();
+  error = '';
+  if (!form.supervisorId || !form.startDate || !form.endDate || cart.length === 0) {
+    error = 'Todos los campos y al menos un dispositivo son obligatorios.';
+    return;
+  }
+  loading = true;
+  try {
+    const res = await fetch('/api/loans/new', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...form, devices: cart }),
+    });
+    if (!res.ok) {
+      const data = await res.json();
+      error = data.error || 'Error al registrar préstamo';
+    } else {
+      cart = [];
+      saveCart();
+      if (onSuccess) onSuccess();
+    }
+  } catch (e) {
+    error = 'Error de red.';
+  } finally {
+    loading = false;
+  }
+}
+---
+<form class="bg-white dark:bg-gray-900 rounded-lg shadow p-6 max-w-xl mx-auto mb-8" on:submit={handleSubmit} autocomplete="off">
+  <h2 class="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-100">Registrar Préstamo</h2>
+  {error && <div class="mb-4 text-red-600">{error}</div>}
+  <div class="grid grid-cols-1 gap-4">
+    <button type="button" class="btn btn-secondary" on:click={() => showScanner = true}>Escanear</button>
+    <DeviceCart devices={cart} onRemove={removeFromCart} />
+    <select class="input" bind:value={form.supervisorId} required>
+      <option value="">Selecciona un supervisor</option>
+      {supervisors.map(s => <option value={s.id}>{s.name}</option>)}
+    </select>
+    <input class="input" type="date" bind:value={form.startDate} required />
+    <input class="input" type="date" bind:value={form.endDate} required />
+  </div>
+  <button type="submit" class="btn btn-primary w-full mt-6" disabled={loading}>
+    {loading ? 'Guardando...' : 'Registrar'}
+  </button>
+</form>
+{showScanner && <DeviceQRScanner onScan={handleScan} onClose={() => showScanner = false} />}
+{showRegisterForm && <DeviceRegisterForm qr={scannedDeviceQR} onRegister={handleRegister} onClose={() => showRegisterForm = false} />}
+
+<style>
+  .input {
+    @apply px-4 py-2 rounded border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 transition;
+  }
+</style> 

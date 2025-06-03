@@ -46,9 +46,27 @@
   --transition-fast: 150ms ease;
   --transition-normal: 250ms ease;
   --transition-slow: 350ms ease;
-  
-  /* Z-index */
+    /* Z-index */
   --z-index-dropdown: 1000;
+  --z-index-modal: 1100;
+  --z-index-tooltip: 1200;
+  --z-index-toast: 1300;
+
+  /* Dashboard específico */
+  --background-primary: #181a1b;
+  --background-secondary: #232526;
+  --background-tertiary: #23272e;
+  --text-primary: #f3f4f6;
+  --text-secondary: #b0b3b8;
+  --border-color: #2d2f31;
+  --card-radius: 18px;
+  --shadow: 0 2px 16px 0 rgba(0, 0, 0, 0.25);
+  
+  /* Estados */
+  --warning: #fbbf24;
+  --danger: #ef4444;
+  --info: #3b82f6;
+  --success: #10b981;
   --z-index-modal: 2000;
   --z-index-toast: 3000;
 }

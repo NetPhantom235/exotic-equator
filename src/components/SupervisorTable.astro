@@ -1,0 +1,58 @@
+---
+interface Supervisor {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  rut: string;
+}
+interface Props {
+  supervisors: Supervisor[];
+}
+const { supervisors = [] } = Astro.props;
+let search = '';
+const filtered = supervisors.filter(s =>
+  s.name.toLowerCase().includes(search.toLowerCase()) ||
+  s.email.toLowerCase().includes(search.toLowerCase()) ||
+  s.rut.toLowerCase().includes(search.toLowerCase())
+);
+---
+<div class="bg-white dark:bg-gray-900 rounded-lg shadow p-6 max-w-5xl mx-auto">
+  <div class="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+    <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-100">Supervisores Registrados</h2>
+    <input type="text" class="input w-full sm:w-64" placeholder="Buscar por nombre, email o RUT" bind:value={search} />
+  </div>
+  <div class="overflow-x-auto">
+    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+      <thead class="bg-gray-50 dark:bg-gray-800">
+        <tr>
+          <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Nombre</th>
+          <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Correo</th>
+          <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Teléfono</th>
+          <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">RUT</th>
+        </tr>
+      </thead>
+      <tbody class="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
+        {filtered.length === 0 && (
+          <tr>
+            <td colspan="4" class="text-center py-6 text-gray-500">No hay supervisores registrados.</td>
+          </tr>
+        )}
+        {filtered.map(s => (
+          <tr>
+            <td class="px-4 py-2 font-medium text-gray-900 dark:text-gray-100">{s.name}</td>
+            <td class="px-4 py-2 text-gray-700 dark:text-gray-200">{s.email}</td>
+            <td class="px-4 py-2 text-gray-700 dark:text-gray-200">{s.phone}</td>
+            <td class="px-4 py-2 text-gray-700 dark:text-gray-200">{s.rut}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<style>
+  .input {
+    @apply px-4 py-2 rounded border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 transition;
+  }
+</style> 

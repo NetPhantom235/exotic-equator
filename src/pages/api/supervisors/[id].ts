@@ -1,4 +1,5 @@
 import type { APIRoute } from 'astro';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { supervisorService } from '../../../lib/supervisorService.js';
 import { SupervisorSchema, ErrorSchema } from '../../../lib/validators.js';
 import { prisma } from '../../../lib/prisma.js';

@@ -1,7 +1,8 @@
 import type { APIRoute } from 'astro';
 import { loanService } from '../../lib/loanService.js';
 import { LoanSchema, ErrorSchema } from '../../lib/validators.js';
-import type { ZodError } from 'zod';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import { ZodError } from 'zod';
 
 export const GET: APIRoute = async ({ request }) => {
   try {
@@ -52,7 +53,7 @@ export const POST: APIRoute = async ({ request }) => {
     }
     // Soporte para múltiples dispositivos
     const { deviceIds, ...rest } = validation.data;
-    let loans = [];
+    const loans = [];
     if (deviceIds && Array.isArray(deviceIds)) {
       for (const deviceId of deviceIds) {
         const existingLoan = await loanService.getActiveLoansByDevice(deviceId);

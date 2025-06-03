@@ -203,24 +203,6 @@ exports.Prisma.SystemMetricScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
-exports.Prisma.UserScalarFieldEnum = {
-  id: 'id',
-  email: 'email',
-  passwordHash: 'passwordHash',
-  role: 'role',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
-};
-
-exports.Prisma.SessionScalarFieldEnum = {
-  id: 'id',
-  token: 'token',
-  userId: 'userId',
-  expiresAt: 'expiresAt',
-  invalidated: 'invalidated',
-  createdAt: 'createdAt'
-};
-
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -240,9 +222,7 @@ exports.Prisma.ModelName = {
   AuditLog: 'AuditLog',
   QueryMetric: 'QueryMetric',
   CacheMetric: 'CacheMetric',
-  SystemMetric: 'SystemMetric',
-  User: 'User',
-  Session: 'Session'
+  SystemMetric: 'SystemMetric'
 };
 
 /**

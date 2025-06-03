@@ -57,6 +57,9 @@ export function checkCameraSupport(): boolean {
 export async function checkCameraPermission(): Promise<'granted' | 'denied' | 'prompt'> {
   try {
     if (navigator.permissions && navigator.permissions.query) {
+      // Permite el uso de PermissionName en el navegador
+      // @ts-expect-error: PermissionName es parte de los tipos de permisos del navegador
+      // eslint-disable-next-line no-undef
       const result = await navigator.permissions.query({ name: 'camera' as PermissionName });
       return result.state;
     }

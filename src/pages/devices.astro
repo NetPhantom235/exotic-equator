@@ -46,9 +46,9 @@ const deviceCreationSteps = [
 
   <section class="actions-bar">
     <Tooltip text="Añadir un nuevo dispositivo al inventario">
-      <button class="add-device-btn" id="openAddDeviceModal"
-        >+ Nuevo Dispositivo</button
-      >
+      <button class="add-device-btn" id="openAddDeviceModal" type="button">
+        + Nuevo Dispositivo
+      </button>
     </Tooltip>
   </section>
 
@@ -135,51 +135,30 @@ const deviceCreationSteps = [
   <!-- Agregar componente Toast para notificaciones -->
   <Toast message="" />
 
+  <!-- Modal de registro de dispositivo -->
   <div
     id="addDeviceModal"
     class="modal"
     style="display:none;opacity:0;transition:opacity 0.35s cubic-bezier(.4,0,.2,1);"
   >
-    <div class="modal-content device-modal-content" tabindex="-1">
-      <div class="modal-header">
-        <h2>Agregar Dispositivo</h2>
-        <button class="close-modal" aria-label="Cerrar">&times;</button>
+    <div class="modal-content device-modal-content max-w-sm w-full mx-auto p-6 sm:p-8 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl relative">
+      <div class="flex justify-between items-center mb-4 border-b border-gray-200 dark:border-gray-700 pb-3">
+        <h2 class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Registrar nuevo dispositivo</h2>
+        <button class="close-modal text-2xl text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 absolute top-6 right-6" aria-label="Cerrar">&times;</button>
       </div>
-
-      <!-- Añadir indicador de progreso para el proceso de creación -->
-      <div class="step-progress">
-        <ProgressIndicator steps={deviceCreationSteps} currentStep={0} />
-      </div>
-
-      <form id="addDeviceForm" autocomplete="off" novalidate>
-        <div class="form-step" id="step-info">
-          <div class="form-fields-grid">
-            <div class="form-group floating-label">
-              <input
-                type="text"
-                id="deviceName"
-                name="name"
-                required
-                placeholder=" "
-                autocomplete="off"
-                aria-required="true"
-                aria-describedby="nameFeedback"
-                autofocus
-              />
-              <label for="deviceName"
-                >Nombre <span class="required">*</span></label
-              >
-              <div class="form-error" id="nameFeedback" aria-live="polite">
-              </div>
+      <form id="addDeviceForm" class="space-y-4" autocomplete="off" novalidate method="post" action="javascript:void(0);">
+        <!-- Datos básicos -->
+        <div>
+          <h3 class="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">Datos básicos</h3>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label for="deviceName" class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Nombre <span class="text-red-500">*</span></label>
+              <input type="text" id="deviceName" name="name" required placeholder="Ej: Laptop HP 250 G8" class="form-input" autocomplete="off" aria-required="true" aria-describedby="nameFeedback" />
+              <div class="form-error" id="nameFeedback" aria-live="polite"></div>
             </div>
-            <div class="form-group floating-label">
-              <select
-                id="deviceCategory"
-                name="category"
-                required
-                aria-required="true"
-                aria-describedby="categoryFeedback"
-              >
+            <div>
+              <label for="deviceCategory" class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Categoría <span class="text-red-500">*</span></label>
+              <select id="deviceCategory" name="category" required aria-required="true" aria-describedby="categoryFeedback" class="form-input">
                 <option value="">Selecciona una categoría...</option>
                 <option value="Laptop">Laptop</option>
                 <option value="Proyector">Proyector</option>
@@ -189,106 +168,202 @@ const deviceCreationSteps = [
                 <option value="Zebra">Zebra</option>
                 <option value="Otro">Otra...</option>
               </select>
-              <label for="deviceCategory"
-                >Categoría <span class="required">*</span></label
-              >
-              <input
-                type="text"
-                id="deviceCategoryOther"
-                name="categoryOther"
-                placeholder="Especificar otra categoría"
-                style="display:none;margin-top:0.5em;"
-                autocomplete="off"
-              />
-              <div class="form-error" id="categoryFeedback" aria-live="polite">
-              </div>
+              <input type="text" id="deviceCategoryOther" name="categoryOther" placeholder="Especificar otra categoría" style="display:none;margin-top:0.5em;" class="form-input mt-2" autocomplete="off" />
+              <div class="form-error" id="categoryFeedback" aria-live="polite"></div>
             </div>
-            <div class="form-actions mt-2">
-              <button type="button" class="btn-primary" id="nextToSpecs"
-                >Siguiente</button
-              >
+            <div>
+              <label for="deviceModel" class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Modelo</label>
+              <input type="text" id="deviceModel" name="model" placeholder="Ej: 250 G8" class="form-input" autocomplete="off" />
+            </div>
+            <div>
+              <label for="deviceSerial" class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Número de Serie</label>
+              <input type="text" id="deviceSerial" name="serial" placeholder="Ej: 5CD1234XYZ" class="form-input" autocomplete="off" />
             </div>
           </div>
         </div>
-
-        <div class="form-step" id="step-specs" style="display:none;">
-          <div class="form-fields-grid">
-            <div class="form-group floating-label">
-              <input
-                type="text"
-                id="deviceModel"
-                name="model"
-                placeholder=" "
-                autocomplete="off"
-              />
-              <label for="deviceModel">Modelo</label>
+        <!-- Ubicación y estado -->
+        <div>
+          <h3 class="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">Ubicación y estado</h3>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label for="deviceLocation" class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Ubicación <span class="text-red-500">*</span></label>
+              <input type="text" id="deviceLocation" name="location" required placeholder="Ej: Oficina 2A" class="form-input" autocomplete="off" />
+              <div class="form-error" id="locationFeedback" aria-live="polite"></div>
             </div>
-            <div class="form-group floating-label">
-              <input
-                type="text"
-                id="deviceSerial"
-                name="serial"
-                placeholder=" "
-                autocomplete="off"
-              />
-              <label for="deviceSerial">Número de Serie</label>
-            </div>
-            <div class="form-actions mt-2">
-              <button type="button" class="btn-secondary" id="backToInfo"
-                >Anterior</button
-              >
-              <button type="button" class="btn-primary" id="nextToLocation"
-                >Siguiente</button
-              >
-            </div>
-          </div>
-        </div>
-
-        <div class="form-step" id="step-location" style="display:none;">
-          <div class="form-fields-grid">
-            <div class="form-group floating-label">
-              <input
-                type="text"
-                id="deviceLocation"
-                name="location"
-                required
-                placeholder=" "
-                autocomplete="off"
-              />
-              <label for="deviceLocation"
-                >Ubicación <span class="required">*</span></label
-              >
-              <div class="field-feedback" id="locationFeedback"></div>
-            </div>
-            <div class="form-group floating-label">
-              <select id="deviceStatus" name="status" required>
+            <div>
+              <label for="deviceStatus" class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Estado <span class="text-red-500">*</span></label>
+              <select id="deviceStatus" name="status" required class="form-input">
                 <option value="available">Disponible</option>
                 <option value="on_loan">En préstamo</option>
                 <option value="maintenance">Mantenimiento</option>
               </select>
-              <label for="deviceStatus"
-                >Estado <span class="required">*</span></label
-              >
-            </div>
-            <div class="form-group floating-label full-width">
-              <textarea id="deviceNotes" name="notes" rows="3" placeholder=" "
-              ></textarea>
-              <label for="deviceNotes">Notas (opcional)</label>
-            </div>
-            <div class="form-actions mt-2">
-              <button type="button" class="btn-secondary" id="backToSpecs"
-                >Anterior</button
-              >
-              <button type="submit" class="btn-primary"
-                >Guardar Dispositivo</button
-              >
             </div>
           </div>
         </div>
-
-        <div id="addDeviceFeedback" class="form-feedback" style="display:none;">
+        <!-- Notas -->
+        <div>
+          <h3 class="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">Notas</h3>
+          <textarea id="deviceNotes" name="notes" rows="2" placeholder="Observaciones, detalles, etc." class="form-input"></textarea>
         </div>
+        <!-- Acciones y feedback -->
+        <div class="flex justify-end items-center gap-4 mt-4">
+          <button type="submit" class="btn-primary w-full py-2 text-base font-semibold rounded-xl shadow-md transition">Registrar dispositivo</button>
+        </div>
+        <div id="addDeviceFeedback" class="form-feedback text-center" style="display:none;"></div>
       </form>
+      <script type="module">
+        import {
+          FormValidator,
+          ValidationRules,
+        } from "../components/FormValidator.js";
+        document.addEventListener("DOMContentLoaded", () => {
+          console.log('[DEBUG] Script de validación cargado');
+          const form = document.getElementById("addDeviceForm");
+          if (!form) {
+            console.error('[DEBUG] No se encontró el formulario con id addDeviceForm');
+            // Mostrar error visible
+            const feedback = document.getElementById("addDeviceFeedback");
+            if (feedback) {
+              feedback.textContent = "Error: No se encontró el formulario de registro. Contacta al administrador.";
+              feedback.classList.add("visible");
+              feedback.style.display = "block";
+            }
+            return;
+          }
+          const btn = form.querySelector('button[type="submit"]');
+          const feedback = document.getElementById("addDeviceFeedback");
+          if (!btn) {
+            console.error('[DEBUG] No se encontró el botón de submit en el formulario');
+            if (feedback) {
+              feedback.textContent = "Error: No se encontró el botón de registro. Contacta al administrador.";
+              feedback.classList.add("visible");
+              feedback.style.display = "block";
+            }
+            return;
+          }
+          let submitting = false;
+          const validator = new FormValidator(form, {
+            showOnBlur: true,
+            showOnChange: true,
+            realtimeValidation: true,
+          })
+            .addField(
+              "name",
+              [
+                ValidationRules.required("El nombre es obligatorio"),
+                ValidationRules.minLength(2, "Mínimo 2 caracteres"),
+              ],
+              document.getElementById("nameFeedback")
+            )
+            .addField(
+              "category",
+              [ValidationRules.required("La categoría es obligatoria")],
+              document.getElementById("categoryFeedback")
+            )
+            .onSubmit(async function (e) {
+              console.log('[DEBUG] Submit interceptado');
+              e.preventDefault();
+              if (submitting) return;
+              if (!validator.validate()) {
+                console.log('[DEBUG] Validación fallida');
+                return;
+              }
+              submitting = true;
+              btn.disabled = true;
+              btn.setAttribute("aria-busy", "true");
+              btn.textContent = "Guardando...";
+              feedback.style.display = "none";
+              feedback.classList.remove("visible");
+              // Recoger datos del formulario
+              const formData = new FormData(form);
+              let data = Object.fromEntries(formData.entries());
+              // Validar categoría personalizada
+              if (data.category === "Otro") {
+                if (!data.categoryOther || data.categoryOther.trim().length < 3) {
+                  feedback.textContent = "Debes especificar una categoría válida (mínimo 3 caracteres)";
+                  feedback.classList.add("visible");
+                  feedback.style.display = "block";
+                  submitting = false;
+                  btn.disabled = false;
+                  btn.removeAttribute("aria-busy");
+                  btn.textContent = "Registrar dispositivo";
+                  console.log('[DEBUG] Categoría personalizada inválida');
+                  return;
+                }
+                data.category = data.categoryOther.trim();
+              }
+              // Eliminar campo auxiliar
+              delete data.categoryOther;
+              // Limpiar strings vacíos
+              Object.keys(data).forEach(k => { if (data[k] === "") delete data[k]; });
+              // Solo enviar campos válidos según el backend
+              const allowed = ["name","category","status","location","notes","model","serial","qrCode","supervisorId"];
+              data = Object.fromEntries(Object.entries(data).filter(([k]) => allowed.includes(k)));
+              console.log('[DEBUG] Enviando datos al backend:', data);
+              try {
+                const response = await fetch("/api/devices", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify(data),
+                });
+                const result = await response.json();
+                console.log('[DEBUG] Respuesta del backend:', result);
+                if (response.ok) {
+                  if (window.toast && typeof window.toast.success === "function") {
+                    window.toast.success("Dispositivo registrado correctamente", "Éxito");
+                  }
+                  feedback.textContent = "Dispositivo registrado correctamente.";
+                  feedback.classList.add("visible");
+                  feedback.style.display = "block";
+                  form.reset();
+                  setTimeout(() => {
+                    feedback.style.display = "none";
+                    feedback.classList.remove("visible");
+                    // Cerrar modal
+                    const addDeviceModal = document.getElementById('addDeviceModal');
+                    if (addDeviceModal) {
+                      addDeviceModal.style.opacity = '0';
+                      setTimeout(() => {
+                        addDeviceModal.style.display = 'none';
+                        document.body.style.overflow = '';
+                      }, 350);
+                    }
+                    // Recargar la página para mostrar el nuevo dispositivo
+                    window.location.reload();
+                  }, 1200);
+                } else {
+                  let msg = result.message || result.error || "Error al registrar dispositivo";
+                  // Mostrar detalles de validación si existen
+                  if (result.details && Array.isArray(result.details)) {
+                    msg += "\n" + result.details.join("\n");
+                  }
+                  // Log detallado en consola para depuración
+                  console.error("Error al registrar dispositivo:", result);
+                  feedback.textContent = msg;
+                  feedback.classList.add("visible");
+                  feedback.style.display = "block";
+                  if (window.toast && typeof window.toast.error === "function") {
+                    window.toast.error(msg, "Error");
+                  }
+                }
+              } catch (err) {
+                feedback.textContent = "Error de conexión";
+                feedback.classList.add("visible");
+                feedback.style.display = "block";
+                if (window.toast && typeof window.toast.error === "function") {
+                  window.toast.error("Error de conexión", "Error");
+                }
+                console.error('[DEBUG] Error de conexión:', err);
+              } finally {
+                submitting = false;
+                btn.disabled = false;
+                btn.removeAttribute("aria-busy");
+                btn.textContent = "Registrar dispositivo";
+              }
+            });
+          document.getElementById("deviceName")?.focus();
+        });
+      </script>
     </div>
   </div>
 
@@ -914,6 +989,79 @@ const deviceCreationSteps = [
       transform: translateX(0);
     }
   }
+
+  .form-input {
+    width: 100%;
+    padding: 0.7rem 1rem;
+    border-radius: 0.7rem;
+    border: 1.5px solid var(--border-color, #d1d5db);
+    background: var(--background-tertiary, #f9fafb);
+    color: var(--text-primary, #181a1b);
+    font-size: 1rem;
+    font-family: inherit;
+    transition: border 0.2s, box-shadow 0.2s;
+    margin-bottom: 0.1em;
+    box-shadow: 0 1px 2px 0 rgba(0,0,0,0.03);
+  }
+  .form-input:focus {
+    border-color: var(--accent, #2563eb);
+    box-shadow: 0 0 0 2px #2563eb33;
+    outline: none;
+    background: #fff;
+  }
+  .btn-primary {
+    background: var(--accent, #2563eb);
+    color: #fff;
+    font-weight: 600;
+    font-size: 1rem;
+    border: none;
+    border-radius: 0.7rem;
+    padding: 0.7rem 1.7rem;
+    cursor: pointer;
+    transition: background 0.2s;
+    box-shadow: 0 2px 8px 0 rgba(37, 99, 235, 0.08);
+    position: relative;
+  }
+  .btn-primary:hover {
+    background: var(--accent-hover, #1d4ed8);
+  }
+  .form-error {
+    color: #ef4444;
+    font-size: 0.97rem;
+    margin-top: 0.2rem;
+    min-height: 1.2em;
+    transition: opacity 0.2s;
+    opacity: 0;
+    display: block;
+  }
+  .form-error.visible {
+    opacity: 1;
+    animation: shake 0.2s;
+  }
+  @keyframes shake {
+    0% { transform: translateX(0); }
+    25% { transform: translateX(-4px); }
+    50% { transform: translateX(4px); }
+    75% { transform: translateX(-2px); }
+    100% { transform: translateX(0); }
+  }
+  @media (max-width: 640px) {
+    .modal-content.device-modal-content {
+      padding: 1.2rem !important;
+      max-width: 98vw;
+    }
+    .form-input {
+      font-size: 0.97rem;
+      padding: 0.6rem 0.7rem;
+    }
+    .btn-primary {
+      font-size: 0.97rem;
+      padding: 0.6rem 1.1rem;
+    }
+    .flex.justify-end.items-center.gap-4.mt-4 {
+      gap: 0.5rem;
+    }
+  }
 </style>
 
 <script>
@@ -1061,52 +1209,53 @@ const deviceCreationSteps = [
         }
       });
     }
-  });
-</script>
 
-<script type="module">
-  import {
-    FormValidator,
-    ValidationRules,
-  } from "../components/FormValidator.js";
-  document.addEventListener("DOMContentLoaded", () => {
-    const form = document.getElementById("addDeviceForm");
-    const btn = form?.querySelector('button[type="submit"]');
-    if (!form || !btn) return;
-    let submitting = false;
-    const validator = new FormValidator(form, {
-      showOnBlur: true,
-      showOnChange: true,
-      realtimeValidation: true,
-    })
-      .addField(
-        "name",
-        [
-          ValidationRules.required("El nombre es obligatorio"),
-          ValidationRules.minLength(2, "Mínimo 2 caracteres"),
-        ],
-        document.getElementById("nameFeedback")
-      )
-      .addField(
-        "category",
-        [ValidationRules.required("La categoría es obligatoria")],
-        document.getElementById("categoryFeedback")
-      )
-      .onSubmit(function (e) {
-        if (submitting) {
-          e.preventDefault();
-          return;
+    // Botón para abrir el modal de nuevo dispositivo
+    const openAddDeviceModalBtn = document.getElementById('openAddDeviceModal');
+    const addDeviceModal = document.getElementById('addDeviceModal');
+    const firstInput = document.getElementById('deviceName');
+    openAddDeviceModalBtn?.addEventListener('click', function () {
+      if (addDeviceModal) {
+        addDeviceModal.style.display = 'block';
+        setTimeout(() => {
+          addDeviceModal.style.opacity = '1';
+          if (firstInput) firstInput.focus();
+          document.body.style.overflow = 'hidden';
+        }, 10);
+      }
+    });
+    // Botón de cerrar
+    document.querySelectorAll('.close-modal').forEach(btn => {
+      btn.addEventListener('click', function () {
+        if (addDeviceModal) {
+          addDeviceModal.style.opacity = '0';
+          setTimeout(() => {
+            addDeviceModal.style.display = 'none';
+            document.body.style.overflow = '';
+          }, 350);
         }
-        if (!validator.validate()) {
-          e.preventDefault();
-          return;
-        }
-        submitting = true;
-        btn.disabled = true;
-        btn.setAttribute("aria-busy", "true");
-        btn.textContent = "Guardando...";
       });
-    document.getElementById("deviceName")?.focus();
+    });
+    // Cerrar modal al hacer click fuera
+    addDeviceModal?.addEventListener('click', (e) => {
+      if (e.target === addDeviceModal) {
+        addDeviceModal.style.opacity = '0';
+        setTimeout(() => {
+          addDeviceModal.style.display = 'none';
+          document.body.style.overflow = '';
+        }, 350);
+      }
+    });
+    // Cerrar modal con Esc
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && addDeviceModal && addDeviceModal.style.display === 'block') {
+        addDeviceModal.style.opacity = '0';
+        setTimeout(() => {
+          addDeviceModal.style.display = 'none';
+          document.body.style.overflow = '';
+        }, 350);
+      }
+    });
   });
 </script>
 

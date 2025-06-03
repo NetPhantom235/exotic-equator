@@ -1,0 +1,15 @@
+---
+import Layout from '../layouts/Layout.astro';
+import SupervisorForm from '../components/SupervisorForm.astro';
+import SupervisorTable from '../components/SupervisorTable.astro';
+import { prisma } from '../lib/prisma';
+
+const supervisors = await prisma.supervisor.findMany();
+---
+
+<Layout title="Supervisores">
+  <div class="max-w-5xl mx-auto px-4 py-8">
+    <SupervisorForm onSuccess={() => window.location.reload()} />
+    <SupervisorTable supervisors={supervisors} />
+  </div>
+</Layout>

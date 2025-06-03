@@ -1,0 +1,31 @@
+---
+import Layout from '../layouts/Layout.astro';
+import LoanForm from '../components/LoanForm.astro';
+import LoanTable from '../components/LoanTable.astro';
+import { prisma } from '../lib/prisma';
+
+const devices = await prisma.device.findMany();
+const supervisors = await prisma.supervisor.findMany();
+const rawLoans = await prisma.loan.findMany({
+  include: {
+    device: true,
+    supervisor: true,
+  },
+});
+
+// Adaptar los datos para LoanTable
+const loans = rawLoans.map(l => ({
+  id: l.id,
+  device: { name: l.device?.name ?? '' },
+  supervisor: { name: l.supervisor?.name ?? '' },
+  startDate: l.loanDate ? l.loanDate.toISOString().split('T')[0] : '',
+  endDate: l.returnDate ? l.returnDate.toISOString().split('T')[0] : '',
+}));
+---
+
+<Layout title="Préstamos">
+  <div class="max-w-5xl mx-auto px-4 py-8">
+    <LoanForm devices={devices} supervisors={supervisors} onSuccess={() => window.location.reload()} />
+    <LoanTable loans={loans} />
+  </div>
+</Layout>

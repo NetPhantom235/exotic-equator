@@ -1,4 +1,4 @@
-import { ErrorType } from './errorHandler';
+import { ErrorType } from './errorHandler.js';
 
 export interface HttpErrorResponse {
   message: string;
@@ -31,6 +31,7 @@ export function normalizeHttpError(error: unknown): HttpErrorResponse {
   };
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function getErrorTypeFromStatus(status: number): ErrorType {
   switch (status) {
     case 400:

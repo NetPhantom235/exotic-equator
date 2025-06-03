@@ -1,64 +1,32 @@
 ---
 interface Props {
-  id: string;
-  title: string;
-  size?: 'sm' | 'md' | 'lg';
+  open: boolean;
+  onClose: () => void;
   class?: string;
 }
-
-const {
-  id,
-  title,
-  size = 'md',
-  class: className = '',
-} = Astro.props;
-
-const sizes = {
-  sm: '400px',
-  md: '600px',
-  lg: '800px',
-};
+const { open, onClose, class: className = '' } = Astro.props;
 ---
-
-<div
-  id={id}
-  class:list={['modal', className]}
-  role="dialog"
-  aria-labelledby={`${id}-title`}
-  aria-modal="true"
-  hidden
->
-  <div class="modal-backdrop" data-close></div>
-  
-  <div 
-    class="modal-content"
-    style={`max-width: ${sizes[size]}`}
-  >
-    <header class="modal-header">
-      <h2 id={`${id}-title`} class="modal-title">
-        {title}
-      </h2>
-      <button 
-        type="button" 
-        class="modal-close" 
-        aria-label="Cerrar modal"
-        data-close
-      >
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-          <path d="M6 6l12 12m0-12L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-        </svg>
+{open && (
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 dark:bg-black/60 transition">
+    <div class:list={[
+      'bg-white',
+      'dark:bg-gray-900',
+      'rounded-2xl',
+      'shadow-xl',
+      'p-8',
+      'max-w-lg',
+      'w-full',
+      'mx-4',
+      'transition',
+      className,
+    ]}>
+      <button class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200" onClick={onClose} aria-label="Cerrar">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
       </button>
-    </header>
-
-    <div class="modal-body">
       <slot />
     </div>
-
-    <footer class="modal-footer">
-      <slot name="footer" />
-    </footer>
   </div>
-</div>
+)}
 
 <style>
   .modal {

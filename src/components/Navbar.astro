@@ -1,0 +1,66 @@
+---
+// Props opcionales para personalización futura
+interface Props {
+  user?: { name: string };
+}
+
+const { user } = Astro.props;
+---
+
+<nav class="w-full bg-white dark:bg-gray-900 shadow-md rounded-2xl px-6 py-3 flex items-center justify-between font-sans">
+  <div class="flex items-center gap-4">
+    <a href="/" class="text-xl font-bold text-gray-900 dark:text-white tracking-tight">InventoryPro</a>
+    <!-- Aquí puedes agregar el logo o branding minimalista -->
+  </div>
+  <div class="flex items-center gap-6">
+    <a href="/dashboard" class="text-gray-700 dark:text-gray-200 hover:text-blue-600 dark:hover:text-blue-400 transition font-medium">Dashboard</a>
+    <a href="/devices" class="text-gray-700 dark:text-gray-200 hover:text-blue-600 dark:hover:text-blue-400 transition font-medium">Dispositivos</a>
+    <a href="/loans" class="text-gray-700 dark:text-gray-200 hover:text-blue-600 dark:hover:text-blue-400 transition font-medium">Préstamos</a>
+    <a href="/alerts" class="text-gray-700 dark:text-gray-200 hover:text-blue-600 dark:hover:text-blue-400 transition font-medium">Alertas</a>
+    <a href="/admin/Administration" class="text-gray-700 dark:text-gray-200 hover:text-blue-600 dark:hover:text-blue-400 transition font-medium">Administración</a>
+  </div>
+  <!-- Aquí puedes agregar botones de usuario, tema, etc. -->
+</nav>
+
+<style>
+  .nav-link {
+    @apply text-gray-700 dark:text-gray-200 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 px-2 py-1 rounded;
+  }
+  .mobile-link {
+    @apply block text-gray-700 dark:text-gray-200 hover:text-blue-600 dark:hover:text-blue-400 font-medium text-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 w-full text-center rounded px-4 py-2;
+  }
+</style>
+
+<script>
+  // Menú móvil accesible
+  const menuBtn = document.getElementById('mobile-menu-button');
+  const mobileMenu = document.getElementById('mobile-menu');
+  if (menuBtn && mobileMenu) {
+    menuBtn.addEventListener('click', () => {
+      const expanded = menuBtn.getAttribute('aria-expanded') === 'true';
+      menuBtn.setAttribute('aria-expanded', (!expanded).toString());
+      mobileMenu.classList.toggle('hidden');
+    });
+    // Cerrar menú al hacer click en un enlace
+    mobileMenu.querySelectorAll('a').forEach(link => {
+      link.addEventListener('click', () => {
+        mobileMenu.classList.add('hidden');
+        menuBtn.setAttribute('aria-expanded', 'false');
+      });
+    });
+  }
+  // Tema oscuro accesible
+  const themeToggle = document.getElementById('theme-toggle');
+  const html = document.documentElement;
+  themeToggle?.addEventListener('click', () => {
+    html.classList.toggle('dark');
+    if (html.classList.contains('dark')) {
+      localStorage.setItem('theme', 'dark');
+    } else {
+      localStorage.setItem('theme', 'light');
+    }
+  });
+  if (localStorage.getItem('theme') === 'dark') {
+    html.classList.add('dark');
+  }
+</script> 

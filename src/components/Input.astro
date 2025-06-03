@@ -1,0 +1,45 @@
+---
+interface Props {
+  type?: string;
+  value?: string;
+  placeholder?: string;
+  disabled?: boolean;
+  class?: string;
+  name?: string;
+  id?: string;
+  required?: boolean;
+  onInput?: (e: Event) => void;
+}
+const { type = 'text', value = '', placeholder = '', disabled = false, class: className = '', name, id, required = false, onInput } = Astro.props;
+---
+<input
+  type={type}
+  value={value}
+  placeholder={placeholder}
+  disabled={disabled}
+  name={name}
+  id={id}
+  required={required}
+  onInput={onInput}
+  class:list={[
+    'font-sans',
+    'rounded-2xl',
+    'shadow-sm',
+    'px-4',
+    'py-2.5',
+    'text-base',
+    'bg-white',
+    'dark:bg-gray-900',
+    'text-gray-900',
+    'dark:text-gray-100',
+    'border',
+    'border-gray-200',
+    'dark:border-gray-800',
+    'focus:outline-none',
+    'focus:ring-2',
+    'focus:ring-blue-500',
+    'transition',
+    'disabled:opacity-50',
+    className,
+  ]}
+/> 

@@ -1,53 +1,132 @@
 ---
-// Componente para manejar el tema oscuro
+interface Props {
+  defaultTheme?: "light" | "dark" | "system";
+}
+
+const { defaultTheme = "system" } = Astro.props;
 ---
 
-<script>
-  // Verificar la preferencia del sistema
-  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-  
-  // Establecer tema oscuro por defecto
-  document.documentElement.classList.add('dark');
-  
-  // Almacenar la preferencia
-  localStorage.setItem('theme', 'dark');
+<theme-provider data-theme={defaultTheme}>
+  <slot />
+</theme-provider>
 
-  // Función para cambiar el tema
-  window.toggleTheme = () => {
-    const isDark = document.documentElement.classList.contains('dark');
-    if (isDark) {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
-    } else {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
+<script>
+  class ThemeProvider extends HTMLElement {
+    constructor() {
+      super();
+      this.defaultTheme = this.dataset.theme || "system";
+      this.#init();
     }
-  };
+
+    #init() {
+      // Cargar tema guardado o usar preferencia del sistema
+      const savedTheme = localStorage.getItem("theme") || this.defaultTheme;
+      this.applyTheme(savedTheme);
+
+      // Exponer método global para cambiar tema
+      window.setTheme = (theme: "light" | "dark" | "system") => {
+        this.applyTheme(theme);
+      };
+
+      // Observar cambios en preferencia del sistema
+      const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+      mediaQuery.addEventListener("change", (e) => {
+        if (savedTheme === "system") {
+          this.applyTheme("system");
+        }
+      });
+    }
+
+    applyTheme(theme: string) {
+      const root = document.documentElement;
+      const isDark =
+        theme === "dark" ||
+        (theme === "system" &&
+          window.matchMedia("(prefers-color-scheme: dark)").matches);
+
+      root.classList.remove("light", "dark");
+      root.classList.add(isDark ? "dark" : "light");
+      localStorage.setItem("theme", theme);
+
+      // Notificar cambio de tema
+      this.dispatchEvent(
+        new CustomEvent("themeChange", {
+          detail: { theme, isDark },
+          bubbles: true,
+        })
+      );
+    }
+  }
+
+  customElements.define("theme-provider", ThemeProvider);
 </script>
 
 <style is:global>
+  /* Light theme */
   :root {
-    --background-primary: #FFFFFF;
-    --background-secondary: #F3F4F6;
-    --text-primary: #111827;
-    --text-secondary: #4B5563;
-    --border-color: #E5E7EB;
-    --accent: #0EA5E9;
-    --accent-light: #BAE6FD;
+    color-scheme: light;
+    --background-primary: #ffffff;
+    --background-secondary: #f8fafc;
+    --background-tertiary: #f1f5f9;
+    --text-primary: #1e293b;
+    --text-secondary: #64748b;
+    --border-color: #e2e8f0;
+    --accent: #0ea5e9;
+    --accent-light: #bae6fd;
+    --accent-dark: #0369a1;
+    --success: #22c55e;
+    --warning: #eab308;
+    --error: #ef4444;
+    --info: #3b82f6;
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1),
+      0 4px 6px -4px rgb(0 0 0 / 0.1);
   }
 
+  /* Dark theme */
   :root.dark {
-    --background-primary: #121212;
-    --background-secondary: #1E1E1E;
-    --text-primary: #E0E0E0;
-    --text-secondary: #A0A0A0;
-    --border-color: #404040;
-    --accent: #38BDF8;
-    --accent-light: #075985;
+    color-scheme: dark;
+    --background-primary: #0f172a;
+    --background-secondary: #1e293b;
+    --background-tertiary: #334155;
+    --text-primary: #f8fafc;
+    --text-secondary: #cbd5e1;
+    --border-color: #475569;
+    --accent: #38bdf8;
+    --accent-light: #0ea5e9;
+    --accent-dark: #0369a1;
+    --success: #4ade80;
+    --warning: #fcd34d;
+    --error: #f87171;
+    --info: #60a5fa;
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.15);
+    --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.2), 0 1px 2px -1px rgb(0 0 0 / 0.2);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.2),
+      0 4px 6px -4px rgb(0 0 0 / 0.2);
+  }
+
+  /* Transiciones suaves */
+  :root {
+    transition:
+      background-color 0.3s ease,
+      color 0.3s ease,
+      border-color 0.3s ease;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    :root {
+      transition: none;
+    }
   }
 
   body {
     background-color: var(--background-primary);
     color: var(--text-primary);
   }
-</style> 
+
+  ::selection {
+    background-color: var(--accent);
+    color: white;
+  }
+</style>

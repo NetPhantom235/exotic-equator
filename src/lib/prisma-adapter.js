@@ -18,8 +18,8 @@ try {
 }
 
 // Si ya existe la exportación de PrismaClient, asegúrate de que esté correctamente exportada para TypeScript:
-// @ts-ignore
-export { PrismaClient } from '@prisma/client';
+// @ts-expect-error: Se permite require temporalmente por compatibilidad
+const prisma = require('@prisma/client');
 
 // Exportarlo para usarlo en ESM
 export { PrismaClient };

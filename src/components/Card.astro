@@ -18,10 +18,17 @@ const Tag = href ? 'a' : 'div';
 
 <Tag
   class:list={[
-    'card',
-    `card-${variant}`,
-    `card-padding-${padding}`,
-    href && 'card-link',
+    'font-sans',
+    'rounded-2xl',
+    'shadow-md',
+    'transition',
+    variant === 'default' && 'bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800',
+    variant === 'elevated' && 'bg-white dark:bg-gray-900 shadow-xl',
+    variant === 'interactive' && 'bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 cursor-pointer hover:shadow-xl hover:-translate-y-1 active:translate-y-0',
+    padding === 'none' && 'p-0',
+    padding === 'sm' && 'p-3',
+    padding === 'md' && 'p-6',
+    padding === 'lg' && 'p-8',
     className,
   ]}
   {...href && { href }}

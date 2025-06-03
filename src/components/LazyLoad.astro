@@ -1,0 +1,112 @@
+---
+interface Props {
+  threshold?: number; // Umbral de intersección (0 a 1)
+  rootMargin?: string; // Margen para el root observer
+}
+
+const { threshold = 0.1, rootMargin = "50px" } = Astro.props;
+---
+
+<div
+  class="lazy-load-container"
+  data-threshold={threshold}
+  data-root-margin={rootMargin}
+>
+  <div class="lazy-load-placeholder">
+    <div class="loading-spinner"></div>
+  </div>
+  <div class="lazy-load-content" style="display: none;">
+    <slot />
+  </div>
+</div>
+
+<script>
+  class LazyLoad extends HTMLElement {
+    constructor() {
+      super();
+      this.setup();
+    }
+
+    setup() {
+      const options = {
+        threshold: parseFloat(this.dataset.threshold || "0.1"),
+        rootMargin: this.dataset.rootMargin || "50px",
+      };
+
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            this.loadContent();
+            observer.unobserve(this);
+          }
+        });
+      }, options);
+
+      observer.observe(this);
+    }
+
+    async loadContent() {
+      const placeholder = this.querySelector(".lazy-load-placeholder");
+      const content = this.querySelector(".lazy-load-content");
+
+      if (placeholder && content) {
+        // Mostrar contenido gradualmente
+        content.style.display = "block";
+        content.style.opacity = "0";
+
+        // Transición suave
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+        content.style.transition = "opacity 0.3s ease";
+        content.style.opacity = "1";
+
+        // Remover placeholder después de la transición
+        setTimeout(() => {
+          placeholder.remove();
+        }, 300);
+      }
+    }
+  }
+
+  customElements.define("lazy-load", LazyLoad);
+</script>
+
+<style>
+  .lazy-load-container {
+    min-height: 100px;
+    position: relative;
+  }
+
+  .lazy-load-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    min-height: inherit;
+  }
+
+  .loading-spinner {
+    width: 2rem;
+    height: 2rem;
+    border: 2px solid var(--border-color);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  .lazy-load-content {
+    width: 100%;
+    height: 100%;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .loading-spinner {
+      animation: none;
+    }
+  }
+</style>

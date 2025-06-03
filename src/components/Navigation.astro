@@ -1,6 +1,19 @@
 ---
 // Importaciones necesarias
 import { Image } from 'astro:assets';
+import { ViewTransitions } from "astro:transitions";
+import Navbar from "../components/Navbar.astro";
+import Toast from "../components/Toast.astro";
+
+interface Props {
+  title: string;
+  description?: string;
+}
+
+const {
+  title,
+  description = "Sistema de Gestión de Inventario",
+} = Astro.props;
 ---
 
 <nav class="nav-container" aria-label="Navegación principal">
@@ -222,7 +235,7 @@ import { Image } from 'astro:assets';
   menuButton?.addEventListener('click', () => {
     const isExpanded = menuButton.getAttribute('aria-expanded') === 'true';
     menuButton.setAttribute('aria-expanded', (!isExpanded).toString());
-    mobileMenu?.setAttribute('aria-hidden', isExpanded.toString());
+    mobileMenu?.setAttribute('aria-hidden', (!isExpanded).toString());
   });
 
   // Cerrar menú móvil al cambiar el tamaño de la ventana
@@ -232,4 +245,20 @@ import { Image } from 'astro:assets';
       mobileMenu?.setAttribute('aria-hidden', 'true');
     }
   });
-</script> 
+</script>
+
+<!doctype html>
+<html lang="es">
+  <head>
+    <!-- ... -->
+  </head>
+  <body>
+    <Navbar />
+
+    <main class="main-content">
+      <slot />
+    </main>
+
+    <Toast />
+  </body>
+</html> 

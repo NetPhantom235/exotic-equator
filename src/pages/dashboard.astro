@@ -1,6 +1,7 @@
 ---
 import Layout from "../layouts/Layout.astro";
 import DashboardHeader from "../components/DashboardHeader.astro";
+import Card from "../components/Card.astro";
 import MetricsPanel from "../components/MetricsPanel.astro";
 import ConnectionStatus from "../components/ConnectionStatus.astro";
 import CacheStats from "../components/CacheStats.astro";
@@ -8,28 +9,7 @@ import { deviceService } from "../lib/deviceService.js";
 import { loanService } from "../lib/loanService.js";
 import type { PrismaClient as PrismaClientType } from "@prisma/client";
 import { PrismaClient } from "../lib/prisma-adapter.js";
-import { authService } from "../lib/auth/authService.js";
-
-// Acceso robusto a user
-declare const Astro: { locals: Locals };
-let user = Astro.locals.user;
-
-// Si no hay usuario en locals pero hay cookie, intentar validar la sesión
-const sessionCookie = Astro.cookies.get("session")?.value;
-if (!user && sessionCookie) {
-  try {
-    console.log("Intentando validar sesión desde cookie en dashboard...");
-    user = await authService.validateSession(sessionCookie);
-    console.log("Usuario validado desde cookie en dashboard:", user);
-  } catch (error) {
-    console.error("Error validando sesión en dashboard:", error);
-  }
-}
-
-// Si sigue sin haber usuario, redirigir al login
-if (!user) {
-  return Astro.redirect("/login?redirect=/dashboard");
-}
+// No authentication required
 
 // Obtener datos reales
 const prisma: PrismaClientType = new PrismaClient();
@@ -85,373 +65,139 @@ await prisma.$disconnect();
 <Layout title="Panel de Control | Sistema de Gestión de Inventario">
   <DashboardHeader title="Panel de Control" />
 
-  {
-    user && (
-      <div class="welcome-banner">
-        <div class="welcome-content">
-          <h1>Bienvenido, {user.email.split("@")[0]}</h1>
-          <p>Aquí tienes un resumen de la actividad reciente del sistema.</p>
-        </div>
-      </div>
-    )
-  }
+  <div class="bg-gradient-to-r from-blue-500 to-blue-700 rounded-xl p-8 mb-8 shadow-lg flex flex-col items-start gap-2">
+    <h1 class="text-2xl md:text-3xl font-bold text-white mb-1">Sistema de Gestión de Inventario</h1>
+    <p class="text-white/90 text-base md:text-lg">Aquí tienes un resumen de la actividad reciente del sistema.</p>
+  </div>
 
-  <section class="dashboard-grid">
-    <div class="dashboard-card">
-      <h2 class="card-title">Resumen de Dispositivos</h2>
-      <div class="stats-grid">
-        <div class="stat-item">
-          <span class="stat-value">{devices.length}</span>
-          <span class="stat-label">Total Dispositivos</span>
+  <section class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 max-w-7xl mx-auto w-full mb-8">
+    <!-- Tarjeta de Dispositivos -->
+    <Card variant="elevated" padding="lg" class="flex flex-col h-full">
+      <div class="mb-4">
+        <h2 class="text-lg font-semibold text-gray-800 dark:text-white mb-2">Resumen de Dispositivos</h2>
+      </div>
+      <div class="grid grid-cols-3 gap-4 mb-4">
+        <div class="flex flex-col items-center bg-gray-100 dark:bg-gray-800 rounded-lg p-4">
+          <span class="text-2xl font-bold text-blue-600 dark:text-blue-400">{devices.length}</span>
+          <span class="text-xs text-gray-500 dark:text-gray-300">Total</span>
         </div>
-        <div class="stat-item">
-          <span class="stat-value">{availableDevices.length}</span>
-          <span class="stat-label">Disponibles</span>
+        <div class="flex flex-col items-center bg-green-100 dark:bg-green-900 rounded-lg p-4">
+          <span class="text-2xl font-bold text-green-600 dark:text-green-400">{availableDevices.length}</span>
+          <span class="text-xs text-gray-500 dark:text-gray-300">Disponibles</span>
         </div>
-        <div class="stat-item">
-          <span class="stat-value">{loansInProgress.length}</span>
-          <span class="stat-label">En Préstamo</span>
+        <div class="flex flex-col items-center bg-yellow-100 dark:bg-yellow-900 rounded-lg p-4">
+          <span class="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{loansInProgress.length}</span>
+          <span class="text-xs text-gray-500 dark:text-gray-300">En Préstamo</span>
         </div>
       </div>
-      <div class="card-actions">
-        <a href="/devices" class="btn-link">Ver todos los dispositivos</a>
+      <div class="mt-auto flex justify-center">
+        <a href="/devices" class="inline-flex items-center gap-2 text-blue-600 hover:underline font-medium text-sm">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+          Ver todos los dispositivos
+        </a>
       </div>
-    </div>
+    </Card>
 
-    <div class="dashboard-card">
-      <h2 class="card-title">Préstamos Recientes</h2>
-      <div class="dashboard-search-bar">
-        <input
-          id="dashboardLoanSearch"
-          class="dashboard-search-input"
-          type="text"
-          placeholder="Buscar por dispositivo o supervisor..."
-        />
+    <!-- Tarjeta de Préstamos Recientes -->
+    <Card variant="elevated" padding="lg" class="flex flex-col h-full">
+      <div class="mb-4">
+        <h2 class="text-lg font-semibold text-gray-800 dark:text-white mb-2">Préstamos Recientes</h2>
+        <input id="dashboardLoanSearch" class="w-full rounded-md border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-sm text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 mb-2" type="text" placeholder="Buscar por dispositivo o supervisor..." />
       </div>
-      <div class="recent-loans" id="dashboardRecentLoans">
+      <div class="flex flex-col gap-3 mb-2" id="dashboardRecentLoans">
         {
           latestLoans.length > 0 ? (
             latestLoans.map((loan) => (
-              <div
-                class="loan-item"
-                data-device={loan.device.name}
-                data-supervisor={loan.supervisor.name}
-              >
-                <div class="loan-info">
-                  <span class="loan-device">{loan.device.name}</span>
-                  <span class="loan-supervisor">{loan.supervisor.name}</span>
+              <div class="flex justify-between items-center bg-gray-100 dark:bg-gray-800 rounded-lg px-4 py-3" data-device={loan.device.name} data-supervisor={loan.supervisor.name}>
+                <div class="flex flex-col">
+                  <span class="font-semibold text-gray-800 dark:text-white">{loan.device.name}</span>
+                  <span class="text-xs text-gray-500 dark:text-gray-300">{loan.supervisor.name}</span>
                 </div>
-                <span class="loan-date">{getRelativeTime(loan.loanDate)}</span>
+                <span class="text-xs text-gray-400 font-medium">{getRelativeTime(loan.loanDate)}</span>
               </div>
             ))
           ) : (
-            <div class="no-data">No hay préstamos recientes</div>
+            <div class="text-center text-gray-400 italic py-6">No hay préstamos recientes</div>
           )
         }
       </div>
-      <div
-        id="dashboardNoLoansMsg"
-        style="display:none; text-align:center; color:var(--text-secondary); padding:1.5rem 0; font-size:1.05rem; font-style:italic;"
-      >
-        No se encontraron préstamos recientes con los criterios seleccionados.
+      <div id="dashboardNoLoansMsg" class="hidden text-center text-gray-400 py-4 text-sm italic">No se encontraron préstamos recientes con los criterios seleccionados.</div>
+      <div class="mt-auto flex justify-center">
+        <a href="/loans" class="inline-flex items-center gap-2 text-blue-600 hover:underline font-medium text-sm">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+          Ver todos los préstamos
+        </a>
       </div>
-      <div class="card-actions">
-        <a href="/loans" class="btn-link">Ver todos los préstamos</a>
-      </div>
-    </div>
+    </Card>
 
-    <div class="dashboard-card">
-      <h2 class="card-title">Alertas Activas</h2>
-      <div class="alerts-list">
+    <!-- Tarjeta de Alertas Activas -->
+    <Card variant="elevated" padding="lg" class="flex flex-col h-full">
+      <div class="mb-4">
+        <h2 class="text-lg font-semibold text-gray-800 dark:text-white mb-2">Alertas Activas</h2>
+      </div>
+      <div class="flex flex-col gap-3 mb-2">
         {
           alerts.length > 0 ? (
             alerts.map((alert) => (
-              <div class={`alert-item alert-${alert.type.toLowerCase()}`}>
-                <div class="alert-icon" />
-                <div class="alert-content">
-                  <span class="alert-title">{alert.type}</span>
-                  <span class="alert-message">{alert.message}</span>
+              <div class={`flex items-center gap-3 rounded-lg px-4 py-3 border-l-4 ${alert.type === 'warning' ? 'border-yellow-500 bg-yellow-50 dark:bg-yellow-900' : alert.type === 'danger' ? 'border-red-500 bg-red-50 dark:bg-red-900' : alert.type === 'info' ? 'border-blue-500 bg-blue-50 dark:bg-blue-900' : 'border-green-500 bg-green-50 dark:bg-green-900'}`}>
+                <div class={`w-6 h-6 rounded-full ${alert.type === 'warning' ? 'bg-yellow-400' : alert.type === 'danger' ? 'bg-red-400' : alert.type === 'info' ? 'bg-blue-400' : 'bg-green-400'}`}></div>
+                <div class="flex flex-col">
+                  <span class="font-semibold text-gray-800 dark:text-white text-sm">{alert.type}</span>
+                  <span class="text-xs text-gray-500 dark:text-gray-300">{alert.message}</span>
                 </div>
               </div>
             ))
           ) : (
-            <div class="no-data">No hay alertas activas</div>
+            <div class="text-center text-gray-400 italic py-6">No hay alertas activas</div>
           )
         }
       </div>
-      <div class="card-actions">
-        <a href="/alerts" class="btn-link">Ver todas las alertas</a>
+      <div class="mt-auto flex justify-center">
+        <a href="/alerts" class="inline-flex items-center gap-2 text-blue-600 hover:underline font-medium text-sm">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+          Ver todas las alertas
+        </a>
       </div>
-    </div>
+    </Card>
+
+    <!-- Accesos rápidos -->
+    <Card variant="interactive" padding="lg" class="flex flex-col h-full col-span-1 md:col-span-2 xl:col-span-3">
+      <div class="mb-4">
+        <h2 class="text-lg font-semibold text-gray-800 dark:text-white mb-2">Accesos Rápidos</h2>
+      </div>
+      <div class="flex flex-wrap gap-4 justify-center">
+        <a href="/devices" class="flex flex-col items-center justify-center bg-blue-100 dark:bg-blue-900 hover:bg-blue-200 dark:hover:bg-blue-800 text-blue-700 dark:text-blue-300 rounded-lg p-4 w-32 h-28 shadow transition-all">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2a2 2 0 012-2h2a2 2 0 012 2v2m-6 4h6a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+          <span class="font-medium text-sm">Dispositivos</span>
+        </a>
+        <a href="/loans" class="flex flex-col items-center justify-center bg-green-100 dark:bg-green-900 hover:bg-green-200 dark:hover:bg-green-800 text-green-700 dark:text-green-300 rounded-lg p-4 w-32 h-28 shadow transition-all">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 10c-2.21 0-4-1.79-4-4h2a2 2 0 004 0h2c0 2.21-1.79 4-4 4zm6-4v-2c0-2.21-1.79-4-4-4s-4 1.79-4 4v2H6v2h12v-2h-2z" /></svg>
+          <span class="font-medium text-sm">Préstamos</span>
+        </a>
+        <a href="/alerts" class="flex flex-col items-center justify-center bg-yellow-100 dark:bg-yellow-900 hover:bg-yellow-200 dark:hover:bg-yellow-800 text-yellow-700 dark:text-yellow-300 rounded-lg p-4 w-32 h-28 shadow transition-all">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 2a10 10 0 100 20 10 10 0 000-20z" /></svg>
+          <span class="font-medium text-sm">Alertas</span>
+        </a>
+        <a href="/supervisors" class="flex flex-col items-center justify-center bg-purple-100 dark:bg-purple-900 hover:bg-purple-200 dark:hover:bg-purple-800 text-purple-700 dark:text-purple-300 rounded-lg p-4 w-32 h-28 shadow transition-all">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87M16 3.13a4 4 0 010 7.75M8 3.13a4 4 0 000 7.75M12 14v7m0 0H9m3 0h3" /></svg>
+          <span class="font-medium text-sm">Supervisores</span>
+        </a>
+      </div>
+    </Card>
   </section>
 
-  <MetricsPanel />
-  <ConnectionStatus />
-  <CacheStats />
+  <div class="max-w-7xl mx-auto w-full flex flex-col gap-6">
+    <MetricsPanel />
+    <ConnectionStatus />
+    <CacheStats />
+  </div>
 </Layout>
-
-<style>
-  :root {
-    --background-primary: #181a1b;
-    --background-secondary: #232526;
-    --background-tertiary: #23272e;
-    --text-primary: #f3f4f6;
-    --text-secondary: #b0b3b8;
-    --border-color: #2d2f31;
-    --card-radius: 18px;
-    --shadow: 0 2px 16px 0 rgba(0, 0, 0, 0.25);
-    --font-main: "Inter", "SF Pro Display", "Segoe UI", Arial, sans-serif;
-    --warning: #fbbf24;
-    --danger: #ef4444;
-    --info: #3b82f6;
-    --success: #10b981;
-  }
-
-  .welcome-banner {
-    background: linear-gradient(to right, #3b82f6, #2563eb);
-    border-radius: var(--card-radius);
-    padding: 2rem;
-    margin-bottom: 2rem;
-    box-shadow: var(--shadow);
-  }
-
-  .welcome-content h1 {
-    font-size: 1.8rem;
-    font-weight: 700;
-    margin-bottom: 0.5rem;
-    color: white;
-  }
-
-  .welcome-content p {
-    font-size: 1.1rem;
-    color: rgba(255, 255, 255, 0.9);
-    margin: 0;
-  }
-
-  .dashboard-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
-    gap: 2rem;
-    width: 100%;
-    max-width: 1400px;
-    margin: 2rem auto 0 auto;
-  }
-
-  .dashboard-card {
-    background: var(--background-secondary);
-    border-radius: var(--card-radius);
-    box-shadow: var(--shadow);
-    padding: 2.2rem 2rem 1.7rem 2rem;
-    margin-bottom: 0.7rem;
-  }
-
-  .card-title {
-    font-size: 1.3rem;
-    font-weight: 700;
-    color: var(--text-primary);
-    margin-bottom: 1.2rem;
-    letter-spacing: 0.01em;
-  }
-
-  .stats-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1.2rem;
-  }
-
-  .stat-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    background: var(--background-tertiary);
-    border-radius: 1em;
-    padding: 1.2em 0.5em;
-    box-shadow: none;
-    border: 1px solid var(--border-color);
-    margin-bottom: 0.5em;
-  }
-
-  .stat-value {
-    font-size: 2rem;
-    font-weight: 700;
-    color: var(--text-primary);
-    margin-bottom: 0.3rem;
-  }
-
-  .stat-label {
-    font-size: 0.9rem;
-    color: var(--text-secondary);
-  }
-
-  .dashboard-search-bar {
-    margin-bottom: 1.2rem;
-  }
-
-  .dashboard-search-input {
-    width: 100%;
-    padding: 0.8rem 1rem;
-    border-radius: 0.5rem;
-    border: 1px solid var(--border-color);
-    background: var(--background-tertiary);
-    color: var(--text-primary);
-    font-size: 0.95rem;
-  }
-
-  .dashboard-search-input:focus {
-    outline: none;
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
-  }
-
-  .recent-loans {
-    display: flex;
-    flex-direction: column;
-    gap: 1.2rem;
-  }
-
-  .loan-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1.1rem 1rem;
-    background: var(--background-tertiary);
-    border-radius: 1em;
-    border: 1px solid var(--border-color);
-    color: var(--text-primary);
-    transition: background 0.2s;
-  }
-
-  .loan-item:hover {
-    background: #232f3e;
-  }
-
-  .loan-info {
-    display: flex;
-    flex-direction: column;
-  }
-
-  .loan-device {
-    font-weight: 700;
-    color: var(--text-primary);
-    font-size: 1.1rem;
-  }
-
-  .loan-supervisor {
-    font-size: 0.95rem;
-    color: var(--text-secondary);
-  }
-
-  .loan-date {
-    font-size: 0.95rem;
-    color: #888;
-    font-weight: 500;
-  }
-
-  .alerts-list {
-    display: flex;
-    flex-direction: column;
-    gap: 1.2rem;
-  }
-
-  .alert-item {
-    display: flex;
-    align-items: center;
-    padding: 1.1rem 1rem;
-    border-radius: 1em;
-    gap: 1.2rem;
-    background: var(--background-tertiary);
-    border: 1px solid var(--border-color);
-    box-shadow: none;
-    color: var(--text-primary);
-  }
-
-  .alert-warning {
-    border-left: 4px solid var(--warning);
-  }
-
-  .alert-danger {
-    border-left: 4px solid var(--danger);
-  }
-
-  .alert-info {
-    border-left: 4px solid var(--info);
-  }
-
-  .alert-success {
-    border-left: 4px solid var(--success);
-  }
-
-  .alert-icon {
-    width: 2rem;
-    height: 2rem;
-    border-radius: 9999px;
-  }
-
-  .alert-warning .alert-icon {
-    background-color: var(--warning);
-  }
-
-  .alert-danger .alert-icon {
-    background-color: var(--danger);
-  }
-
-  .alert-info .alert-icon {
-    background-color: var(--info);
-  }
-
-  .alert-success .alert-icon {
-    background-color: var(--success);
-  }
-
-  .alert-content {
-    display: flex;
-    flex-direction: column;
-  }
-
-  .alert-title {
-    font-weight: 700;
-    font-size: 1rem;
-    margin-bottom: 0.2rem;
-  }
-
-  .alert-message {
-    font-size: 0.95rem;
-    color: var(--text-secondary);
-  }
-
-  .card-actions {
-    margin-top: 1.5rem;
-    text-align: center;
-  }
-
-  .btn-link {
-    color: #3b82f6;
-    font-size: 0.95rem;
-    font-weight: 500;
-    text-decoration: none;
-  }
-
-  .btn-link:hover {
-    text-decoration: underline;
-  }
-
-  .no-data {
-    padding: 2rem;
-    text-align: center;
-    color: var(--text-secondary);
-    font-style: italic;
-    background: var(--background-tertiary);
-    border-radius: 1em;
-    border: 1px solid var(--border-color);
-  }
-</style>
 
 <script>
   // Filtrado de préstamos en tiempo real
   const searchInput = document.getElementById("dashboardLoanSearch");
   const loanItems = document.querySelectorAll(
-    "#dashboardRecentLoans .loan-item"
+    "#dashboardRecentLoans .flex.justify-between"
   );
   const noLoansMsg = document.getElementById("dashboardNoLoansMsg");
 

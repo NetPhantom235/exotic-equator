@@ -48,10 +48,9 @@ export const POST: APIRoute = withApiMetrics(async ({ request }: { request: Requ
     
     if (!validation.success) {
       console.error('Errores de validación:', validation.error.errors);
-      
       return new Response(JSON.stringify({
         code: 'VALIDATION_ERROR',
-        message: ERROR_MESSAGES.DEVICE.VALIDATION_ERROR,
+        message: 'Error de validación: revisa los campos obligatorios.',
         details: validation.error.errors.map(e => `${e.path.join('.')}: ${e.message}`),
         timestamp: new Date().toISOString()
       }), {
@@ -77,11 +76,15 @@ export const POST: APIRoute = withApiMetrics(async ({ request }: { request: Requ
     });
   } catch (error: unknown) {
     console.error('Error al crear dispositivo:', error);
-    
-    const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+    let errorMessage = 'Error desconocido';
+    if (error instanceof Error) {
+      errorMessage = error.message;
+    } else if (typeof error === 'object' && error !== null && 'message' in error) {
+      errorMessage = (error as any).message;
+    }
     return new Response(JSON.stringify({ 
       code: 'SERVER_ERROR',
-      message: errorMessage,
+      message: 'Error del servidor: ' + errorMessage,
       timestamp: new Date().toISOString()
     }), {
       status: 500,

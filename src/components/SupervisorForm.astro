@@ -1,0 +1,77 @@
+---
+interface Props {
+  onSuccess?: () => void;
+}
+const { onSuccess } = Astro.props;
+
+let form = {
+  name: '',
+  email: '',
+  phone: '',
+  rut: '',
+};
+let error = '';
+let loading = false;
+
+function validateEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+function validateRUT(rut) {
+  return rut.length >= 8 && rut.length <= 12;
+}
+
+async function handleSubmit(e) {
+  e.preventDefault();
+  error = '';
+  if (!form.name || !form.email || !form.phone || !form.rut) {
+    error = 'Todos los campos son obligatorios.';
+    return;
+  }
+  if (!validateEmail(form.email)) {
+    error = 'Correo electrónico inválido.';
+    return;
+  }
+  if (!validateRUT(form.rut)) {
+    error = 'RUT inválido.';
+    return;
+  }
+  loading = true;
+  try {
+    const res = await fetch('/api/supervisors/new', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(form),
+    });
+    if (!res.ok) {
+      const data = await res.json();
+      error = data.error || 'Error al registrar supervisor';
+    } else {
+      form = { name: '', email: '', phone: '', rut: '' };
+      if (onSuccess) onSuccess();
+    }
+  } catch (e) {
+    error = 'Error de red.';
+  } finally {
+    loading = false;
+  }
+}
+---
+<form class="bg-white dark:bg-gray-900 rounded-lg shadow p-6 max-w-xl mx-auto mb-8" on:submit={handleSubmit} autocomplete="off">
+  <h2 class="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-100">Registrar Supervisor</h2>
+  {error && <div class="mb-4 text-red-600">{error}</div>}
+  <div class="grid grid-cols-1 gap-4">
+    <input class="input" type="text" placeholder="Nombre completo" bind:value={form.name} required />
+    <input class="input" type="email" placeholder="Correo electrónico" bind:value={form.email} required />
+    <input class="input" type="tel" placeholder="Teléfono" bind:value={form.phone} required />
+    <input class="input" type="text" placeholder="RUT" bind:value={form.rut} required />
+  </div>
+  <button type="submit" class="btn btn-primary w-full mt-6" disabled={loading}>
+    {loading ? 'Guardando...' : 'Registrar'}
+  </button>
+</form>
+
+<style>
+  .input {
+    @apply px-4 py-2 rounded border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 transition;
+  }
+</style> 

@@ -1,6 +1,8 @@
 import type { APIRoute } from 'astro';
 import { supervisorService } from '../../lib/supervisorService.js';
 import { SupervisorSchema, ErrorSchema } from '../../lib/validators.js';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import { request } from 'http';
 
 export const GET: APIRoute = async ({ request }) => {
   try {

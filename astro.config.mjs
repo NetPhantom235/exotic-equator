@@ -14,15 +14,28 @@ export default defineConfig({
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
       allowHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token']
     }
-  },
-  vite: {
+  },  vite: {
     build: {
-      assetsInlineLimit: 0
+      assetsInlineLimit: 4096,
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            'vendor': ['react', 'react-dom'],
+          }
+        }
+      }
     },
     server: {
       fs: {
-        strict: false
+        strict: true,
+        allow: ['..']
       }
+    },
+    optimizeDeps: {
+      include: ['react', 'react-dom'],
+    },
+    css: {
+      devSourcemap: true
     }
   },
   integrations: [react(), tailwind()],

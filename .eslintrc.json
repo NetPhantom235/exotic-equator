@@ -1,0 +1,24 @@
+{
+  "env": {
+    "browser": true,
+    "es2021": true,
+    "node": true
+  },
+  "extends": [
+    "eslint:recommended",
+    "plugin:@typescript-eslint/recommended",
+    "plugin:tailwindcss/recommended"
+  ],
+  "parser": "@typescript-eslint/parser",
+  "parserOptions": {
+    "ecmaVersion": 2022,
+    "sourceType": "module"
+  },
+  "plugins": ["@typescript-eslint", "tailwindcss"],
+  "rules": {
+    "no-unused-vars": "warn",
+    "no-undef": "error",
+    "tailwindcss/no-custom-classname": "off"
+  },
+  "ignorePatterns": ["*.astro", "*.d.ts", "src/lib/prisma/**", "public/**", "scripts/**"]
+}
